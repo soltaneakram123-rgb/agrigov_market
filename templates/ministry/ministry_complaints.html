@@ -1,0 +1,117 @@
+{% extends 'ministry/ministry_base.html' %}
+{% block title %}Complaints{% endblock %}
+{% block topbar_title %}⚠️ Complaints{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>⚠️ Complaints Management</h1>
+    <p>Review and resolve user complaints</p>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card red"><h4>Open</h4><p>{{ stats.open }}</p></div>
+  <div class="stat-card orange"><h4>In Review</h4><p>{{ stats.in_review }}</p></div>
+  <div class="stat-card teal"><h4>Resolved</h4><p>{{ stats.resolved }}</p></div>
+  <div class="stat-card"><h4>Total</h4><p>{{ stats.total }}</p></div>
+</div>
+
+<!-- Filter tabs -->
+<div style="display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap;">
+  <a href="{% url 'ministry_complaints' %}" class="btn {% if not status_filter %}btn-primary{% else %}btn-info{% endif %}">All ({{ stats.total }})</a>
+  <a href="?status=open" class="btn {% if status_filter == 'open' %}btn-primary{% else %}btn-danger{% endif %}">Open ({{ stats.open }})</a>
+  <a href="?status=in_review" class="btn {% if status_filter == 'in_review' %}btn-primary{% else %}btn-warn{% endif %}">In Review ({{ stats.in_review }})</a>
+  <a href="?status=resolved" class="btn {% if status_filter == 'resolved' %}btn-primary{% else %}btn-success{% endif %}">Resolved ({{ stats.resolved }})</a>
+</div>
+
+<div class="table-card">
+  <div class="table-card-header">
+    <h3>Complaints ({{ complaints|length }})</h3>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>ID</th><th>From</th><th>Subject</th><th>Status</th><th>Date</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for c in complaints %}
+        <tr>
+          <td><strong>#{{ c.id }}</strong></td>
+          <td>
+            {{ c.from_user.username|default:"Anonymous" }}
+            {% if c.from_user %}
+              {% if c.from_user.role == 'farmer' %}
+                <span style="font-size:10px;background:#e8f5e9;color:#1e4620;padding:2px 7px;border-radius:10px;margin-left:4px;font-weight:600;">🌾 Farmer</span>
+              {% elif c.from_user.role == 'buyer' %}
+                <span style="font-size:10px;background:#e3f2fd;color:#1565c0;padding:2px 7px;border-radius:10px;margin-left:4px;font-weight:600;">🛒 Buyer</span>
+              {% endif %}
+            {% endif %}
+          </td>
+          <td>
+            <strong>{{ c.subject }}</strong>
+            <br><small style="color:#999;">{{ c.description|truncatechars:80 }}</small>
+          </td>
+          <td id="c-status-{{ c.id }}">
+            {% if c.status == 'open' %}<span class="badge badge-red">🔴 Open</span>
+            {% elif c.status == 'in_review' %}<span class="badge badge-orange">🔄 In Review</span>
+            {% elif c.status == 'resolved' %}<span class="badge badge-green">✓ Resolved</span>
+            {% else %}<span class="badge badge-grey">{{ c.status }}</span>{% endif %}
+          </td>
+          <td>{{ c.created_at|date:"d M Y" }}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn btn-info" onclick='openResolveModal({{ c.id }}, "{{ c.status }}", "{{ c.resolution_note|escapejs }}")'>Review</button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align:center;color:#aaa;padding:40px;">No complaints found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Resolve Modal -->
+<div class="modal-bg" id="resolveModal">
+  <div class="modal">
+    <h3>📋 Update Complaint</h3>
+    <input type="hidden" id="resolveId">
+    <div class="modal-field">
+      <label>Status</label>
+      <select id="resolveStatus">
+        <option value="open">Open</option>
+        <option value="in_review">In Review</option>
+        <option value="resolved">Resolved</option>
+        <option value="rejected">Rejected</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>Resolution Note</label>
+      <textarea id="resolveNote" placeholder="Write resolution or internal note…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('resolveModal')">Cancel</button>
+      <button class="modal-save" onclick="saveResolve()">Update</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openResolveModal(id, status, note) {
+  document.getElementById('resolveId').value = id;
+  document.getElementById('resolveStatus').value = status;
+  document.getElementById('resolveNote').value = note;
+  document.getElementById('resolveModal').classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+async function saveResolve() {
+  const id = document.getElementById('resolveId').value;
+  const status = document.getElementById('resolveStatus').value;
+  const note = document.getElementById('resolveNote').value;
+  const data = await apiPost(`/ministry/complaints/${id}/update/`, {status, resolution_note: note});
+  if (data.status === 'ok') { showToast('Complaint updated ✓'); setTimeout(() => location.reload(), 700); }
+}
+</script>
+{% endblock %}

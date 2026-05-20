@@ -1,0 +1,138 @@
+{% extends 'ministry/ministry_base.html' %}
+{% block title %}Policies{% endblock %}
+{% block topbar_title %}📜 Policies{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>📜 Agricultural Policies</h1>
+    <p>Create and manage official agricultural policies and regulations</p>
+  </div>
+  <div class="header-actions">
+    <button class="hbtn" onclick="openAddModal()">+ New Policy</button>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card teal"><h4>Active Policies</h4><p>{{ stats.active }}</p></div>
+  <div class="stat-card orange"><h4>Drafts</h4><p>{{ stats.draft }}</p></div>
+  <div class="stat-card"><h4>Total</h4><p>{{ stats.total }}</p></div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:15px;">
+  {% for p in policies %}
+  <div class="table-card" style="padding:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          {% if p.status == 'active' %}<span class="badge badge-green">✓ Active</span>
+          {% elif p.status == 'draft' %}<span class="badge badge-orange">📝 Draft</span>
+          {% else %}<span class="badge badge-grey">Archived</span>{% endif %}
+          <span style="font-size:12px;color:#aaa;">{{ p.created_at|date:"d M Y" }}</span>
+        </div>
+        <h3 style="color:#1e4620;margin-bottom:6px;">{{ p.title }}</h3>
+        <p style="color:#666;font-size:13px;line-height:1.6;">{{ p.content|truncatechars:200 }}</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        <button class="btn btn-info" onclick='openEditModal({{ p.id }}, "{{ p.title|escapejs }}", "{{ p.content|escapejs }}", "{{ p.status }}")'>✏️ Edit</button>
+        <button class="btn btn-danger" onclick="deletePolicy({{ p.id }})">Delete</button>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="table-card" style="padding:50px;text-align:center;color:#aaa;">
+    No policies yet. Add the first one!
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Add Modal -->
+<div class="modal-bg" id="addModal">
+  <div class="modal">
+    <h3>📜 New Policy</h3>
+    <div class="modal-field">
+      <label>Title *</label>
+      <input type="text" id="addTitle" placeholder="e.g. Organic Farming Regulations 2026">
+    </div>
+    <div class="modal-field">
+      <label>Content *</label>
+      <textarea id="addContent" style="height:150px;" placeholder="Policy content…"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>Status</label>
+      <select id="addStatus">
+        <option value="draft">Draft</option>
+        <option value="active">Active</option>
+        <option value="archived">Archived</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('addModal')">Cancel</button>
+      <button class="modal-save" onclick="saveAdd()">Create Policy</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <h3>✏️ Edit Policy</h3>
+    <input type="hidden" id="editId">
+    <div class="modal-field">
+      <label>Title *</label>
+      <input type="text" id="editTitle">
+    </div>
+    <div class="modal-field">
+      <label>Content *</label>
+      <textarea id="editContent" style="height:150px;"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>Status</label>
+      <select id="editStatus">
+        <option value="draft">Draft</option>
+        <option value="active">Active</option>
+        <option value="archived">Archived</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('editModal')">Cancel</button>
+      <button class="modal-save" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openAddModal() { document.getElementById('addModal').classList.add('open'); }
+function openEditModal(id, title, content, status) {
+  document.getElementById('editId').value = id;
+  document.getElementById('editTitle').value = title;
+  document.getElementById('editContent').value = content;
+  document.getElementById('editStatus').value = status;
+  document.getElementById('editModal').classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+async function saveAdd() {
+  const title = document.getElementById('addTitle').value.trim();
+  const content = document.getElementById('addContent').value.trim();
+  if (!title || !content) { showToast('Title and content required', false); return; }
+  const data = await apiPost('/ministry/policies/add/', {title, content, status: document.getElementById('addStatus').value});
+  if (data.status === 'ok') { showToast('Policy created ✓'); setTimeout(() => location.reload(), 700); }
+}
+async function saveEdit() {
+  const id = document.getElementById('editId').value;
+  const data = await apiPost(`/ministry/policies/${id}/edit/`, {
+    title: document.getElementById('editTitle').value,
+    content: document.getElementById('editContent').value,
+    status: document.getElementById('editStatus').value,
+  });
+  if (data.status === 'ok') { showToast('Policy updated ✓'); setTimeout(() => location.reload(), 700); }
+}
+async function deletePolicy(id) {
+  if (!confirm('Delete this policy?')) return;
+  const data = await apiPost(`/ministry/policies/${id}/delete/`, {});
+  if (data.status === 'ok') { showToast('Policy deleted'); setTimeout(() => location.reload(), 700); }
+}
+</script>
+{% endblock %}

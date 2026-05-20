@@ -1,0 +1,48 @@
+{% extends 'farmer_base.html' %}
+{% block title %}Notifications{% endblock %}
+{% block topbar_title %}🔔 Notifications{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="header-left">
+    <h1>🔔 Notifications</h1>
+    <p>Stay updated on your orders and farm activity</p>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><h4>New Orders</h4><p>{{ pending_orders }}</p></div>
+  <div class="stat-card blue"><h4>Confirmed</h4><p>{{ confirmed_orders }}</p></div>
+  <div class="stat-card orange"><h4>In Transit</h4><p>{{ transit_orders }}</p></div>
+  <div class="stat-card"><h4>Delivered</h4><p>{{ delivered_orders }}</p></div>
+</div>
+
+<div style="margin:20px;display:flex;flex-direction:column;gap:12px;">
+  {% for order in recent_orders %}
+  <div style="display:flex;align-items:center;gap:15px;background:white;padding:16px 18px;border-radius:12px;box-shadow:0 3px 12px rgba(0,0,0,0.07);border-left:4px solid
+    {% if order.status == 'pending' %}#f0ad4e
+    {% elif order.status == 'confirmed' %}#2e8b42
+    {% elif order.status == 'in_transit' %}#42a5f5
+    {% else %}#4caf50{% endif %};">
+    <div style="width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;background:#e8f5e9;">
+      {% if order.status == 'pending' %}⏳{% elif order.status == 'confirmed' %}✅{% elif order.status == 'in_transit' %}🚚{% else %}📦{% endif %}
+    </div>
+    <div style="flex:1;">
+      <h4 style="color:#1e4620;font-size:14px;margin-bottom:3px;">
+        Order #{{ order.id }} — {{ order.buyer.username }}
+      </h4>
+      <p style="color:#666;font-size:13px;">
+        Total: <strong>{{ order.total_amount }} DA</strong> &nbsp;|&nbsp;
+        Status: <strong>{{ order.get_status_display }}</strong>
+      </p>
+    </div>
+    <div style="font-size:11px;color:#aaa;">{{ order.created_at|date:"d M Y" }}</div>
+  </div>
+  {% empty %}
+  <div style="text-align:center;padding:50px;color:#aaa;">
+    <p style="font-size:36px;">🔔</p>
+    <p style="margin-top:10px;">No notifications yet.</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

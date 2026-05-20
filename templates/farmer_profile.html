@@ -1,0 +1,63 @@
+{% extends 'farmer_base.html' %}
+{% block title %}Profile{% endblock %}
+{% block topbar_title %}👤 Profile{% endblock %}
+
+{% block content %}
+<div class="header">
+  <h1>👤 My Profile</h1>
+</div>
+
+<div style="margin:20px;display:flex;gap:20px;flex-wrap:wrap;">
+  <!-- Profile Card -->
+  <div style="flex:1;min-width:260px;background:white;padding:25px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.08);text-align:center;">
+    <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" style="width:100px;height:100px;border-radius:50%;margin-bottom:15px;border:4px solid #2e8b42;">
+    <h2 style="color:#1e4620;margin-bottom:4px;">{{ user.get_full_name|default:user.username }}</h2>
+    <span style="background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:bold;padding:4px 14px;border-radius:20px;display:inline-block;margin-bottom:15px;">
+      🌾 Farmer
+    </span>
+    <div style="display:flex;gap:10px;margin-top:18px;">
+      <div style="flex:1;background:#f8f8f8;padding:12px;border-radius:10px;text-align:center;">
+        <h3 style="color:#2e8b42;font-size:18px;">{{ total_products }}</h3>
+        <p style="font-size:12px;color:#777;margin-top:3px;">Products</p>
+      </div>
+      <div style="flex:1;background:#f8f8f8;padding:12px;border-radius:10px;text-align:center;">
+        <h3 style="color:#2e8b42;font-size:18px;">{{ total_orders }}</h3>
+        <p style="font-size:12px;color:#777;margin-top:3px;">Orders</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info Card -->
+  <div style="flex:2;min-width:300px;background:white;padding:25px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.08);">
+    <h3 style="color:#1e4620;margin-bottom:15px;font-size:15px;">📋 Account Information</h3>
+    <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
+      <span style="color:#666;">Username</span><strong style="color:#1e4620;">{{ user.username }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
+      <span style="color:#666;">Email</span><strong style="color:#1e4620;">{{ user.email|default:"—" }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
+      <span style="color:#666;">Phone</span><strong style="color:#1e4620;">{{ user.phone|default:"—" }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
+      <span style="color:#666;">Role</span><strong style="color:#1e4620;">{{ user.get_role_display }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:12px;">
+      <span style="color:#666;">Member Since</span><strong style="color:#1e4620;">{{ user.date_joined|date:"d M Y" }}</strong>
+    </div>
+
+    <hr style="margin:20px 0;border:none;border-top:1px solid #f0f0f0;">
+    <h3 style="color:#1e4620;margin-bottom:15px;font-size:15px;">🌾 Farm Info</h3>
+    {% if farm %}
+    <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
+      <span style="color:#666;">Farm Name</span><strong style="color:#1e4620;">{{ farm.name }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:12px;">
+      <span style="color:#666;">Location</span><strong style="color:#1e4620;">{{ farm.location }}</strong>
+    </div>
+    {% else %}
+    <p style="color:#aaa;font-size:13px;">No farm registered yet. <a href="{% url 'my_farm' %}" style="color:#2e8b42;">Add your farm →</a></p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

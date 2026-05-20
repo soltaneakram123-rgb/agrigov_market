@@ -1,0 +1,197 @@
+{% extends 'farmer_base.html' %}
+{% block title %}Add Product{% endblock %}
+{% block topbar_title %}➕ Add Product{% endblock %}
+
+{% block extra_style %}
+.form-card{background:white;border-radius:12px;padding:28px;box-shadow:0 5px 15px rgba(0,0,0,0.08);margin:20px;max-width:620px;}
+.form-card h3{color:#1e4620;margin-bottom:20px;font-size:15px;}
+.field{margin-bottom:18px;}
+.field label{display:block;font-size:12px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:7px;}
+.field select,.field input{width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:14px;outline:none;transition:0.3s;font-family:inherit;background:white;}
+.field select:focus,.field input:focus{border-color:#2e8b42;box-shadow:0 0 0 3px rgba(46,139,66,0.1);}
+.product-preview{background:#e8f5e9;border-radius:10px;padding:14px;margin-bottom:18px;display:none;align-items:center;gap:14px;}
+.product-preview.show{display:flex;}
+.preview-img{width:64px;height:64px;border-radius:10px;object-fit:cover;border:2px solid #2e8b42;}
+.preview-name{font-size:15px;font-weight:bold;color:#1e4620;}
+.preview-cat{font-size:12px;color:#666;margin-top:3px;}
+.submit-btn{width:100%;padding:13px;background:#2e8b42;color:white;border:none;border-radius:10px;font-size:15px;font-weight:bold;cursor:pointer;transition:0.3s;}
+.submit-btn:hover{background:#256f35;}
+.cancel-link{display:block;text-align:center;margin-top:12px;color:#777;font-size:13px;text-decoration:none;}
+.cancel-link:hover{color:#2e8b42;}
+.optgroup-label{font-weight:bold;color:#1e4620;}
+.dark .form-card{background:#1e1e1e;}
+.dark .field label{color:#aaa;}
+.dark .field select,.dark .field input{background:#2a2a2a;color:white;border-color:#333;}
+.dark .product-preview{background:#1a3320;}
+.dark .preview-name{color:#88d982;}
+{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div><h1>Add New Product</h1><p>Select a product from the official catalogue and set your price and quantity</p></div>
+</div>
+
+<form method="post" action="{% url 'add_product' %}">
+{% csrf_token %}
+<div class="form-card">
+  <h3>📦 Product Details</h3>
+
+  {% if farms|length > 1 %}
+  <div class="field">
+    <label>Select Farm <span style="color:red;">*</span></label>
+    <select name="farm_id" required>
+      <option value="">-- Choose a farm --</option>
+      {% for farm in farms %}
+      <option value="{{ farm.id }}" {% if request.GET.farm_id == farm.id|stringformat:"s" %}selected{% endif %}>
+        {{ farm.name }} — 📍 {{ farm.location }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  {% elif farms %}
+  <input type="hidden" name="farm_id" value="{{ farms.0.id }}">
+  <div style="background:#e8f5e9;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#1e4620;">
+    🌾 Farm: <strong>{{ farms.0.name }}</strong> — 📍 {{ farms.0.location }}
+    &nbsp;&nbsp;<a href="{% url 'my_farm' %}" style="color:#2e8b42;font-size:12px;">Manage farms</a>
+  </div>
+  {% else %}
+  <div style="background:#fee2e2;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#b91c1c;">
+    ❌ You have no registered farms. <a href="{% url 'create_farm' %}" style="color:#b91c1c;font-weight:bold;">Register a farm first →</a>
+  </div>
+  {% endif %}
+
+  <!-- Product preview (updated by JS) -->
+  <div class="product-preview" id="previewBox">
+    <img id="previewImg" src="" alt="" class="preview-img">
+    <div>
+      <div class="preview-name" id="previewName"></div>
+      <div class="preview-cat" id="previewCat"></div>
+    </div>
+  </div>
+
+  <!-- FIX 4: Predefined dropdown instead of free-text -->
+  <div class="field">
+    <label>Select Product from Catalogue <span style="color:red;">*</span></label>
+    <select name="product_type" id="productTypeSelect" required onchange="updatePreview(this)">
+      <option value="">-- Choose a product --</option>
+      {% for cat, types in categories_map.items %}
+      <optgroup label="{{ cat }}">
+        {% for pt in types %}
+        <option value="{{ pt.id }}"
+                data-img="{{ pt.image_url }}"
+                data-cat="{{ pt.get_category_display }}">
+          {{ pt.name }}{% if pt.name_ar %} ({{ pt.name_ar }}){% endif %}
+        </option>
+        {% endfor %}
+      </optgroup>
+      {% empty %}
+      <option disabled>No products in catalogue yet — please ask the admin to add them.</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="field">
+      <label>Quantity (Kg) <span style="color:red;">*</span></label>
+      <input type="number" name="quantity_kg" step="0.5" min="1" required placeholder="e.g. 200">
+    </div>
+    <div class="field">
+      <label>Price per Kg (DA) <span style="color:red;">*</span></label>
+      <!-- Seasonal range hint — updated by JS when product is selected -->
+      <div id="priceRangeHint" style="display:none;background:#e8f5e9;border:1.5px solid #2e8b42;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px;color:#1e4620;">
+        <strong>📊 Allowed range for <span id="hintSeason"></span>:</strong>
+        <span style="color:#2e8b42;font-weight:700;" id="hintMin"></span> DA
+        &nbsp;→&nbsp;
+        <span style="color:#e65100;font-weight:700;" id="hintMax"></span> DA / kg
+      </div>
+      <div id="noRangeHint" style="display:none;background:#fff8e1;border:1.5px solid #f0ad4e;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px;color:#e65100;">
+        ⚠️ No price range set by admin for this product this season — any price is accepted.
+      </div>
+      <input type="number" name="price_per_kg" id="priceInput" step="0.5" min="1" required placeholder="e.g. 85"
+             oninput="validatePrice(this.value)">
+      <div id="priceError" style="display:none;color:#b71c1c;font-size:12px;margin-top:4px;font-weight:600;"></div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Quality Grade</label>
+    <select name="quality">
+      <option value="A">⭐⭐⭐ Premium (A)</option>
+      <option value="B" selected>⭐⭐ Standard (B)</option>
+      <option value="C">⭐ Basic (C)</option>
+    </select>
+  </div>
+
+  <button type="submit" class="submit-btn">✅ Publish Product</button>
+  <a href="{% url 'farmer_dashboard' %}" class="cancel-link">← Cancel and go back</a>
+</div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Seasonal price ranges from server
+const RANGES_MAP = {{ ranges_map_json|safe }};
+
+function updatePreview(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt.value) {
+    document.getElementById('previewBox').classList.remove('show');
+    document.getElementById('priceRangeHint').style.display = 'none';
+    document.getElementById('noRangeHint').style.display = 'none';
+    return;
+  }
+  // Product preview
+  const img  = opt.dataset.img  || 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=200';
+  const cat  = opt.dataset.cat  || '';
+  const name = opt.text;
+  document.getElementById('previewImg').src = img;
+  document.getElementById('previewName').textContent = name;
+  document.getElementById('previewCat').textContent  = '📂 ' + cat;
+  document.getElementById('previewBox').classList.add('show');
+
+  // Seasonal price range hint
+  const ptId = parseInt(opt.value);
+  const range = RANGES_MAP[ptId];
+  if (range) {
+    document.getElementById('hintMin').textContent = range.min;
+    document.getElementById('hintMax').textContent = range.max;
+    document.getElementById('hintSeason').textContent = range.season;
+    document.getElementById('priceInput').min = range.min;
+    document.getElementById('priceInput').max = range.max;
+    document.getElementById('priceInput').placeholder = `${range.min} – ${range.max} DA`;
+    document.getElementById('priceRangeHint').style.display = 'block';
+    document.getElementById('noRangeHint').style.display = 'none';
+    validatePrice(document.getElementById('priceInput').value);
+  } else {
+    document.getElementById('priceRangeHint').style.display = 'none';
+    document.getElementById('noRangeHint').style.display = 'block';
+    document.getElementById('priceInput').min = 1;
+    document.getElementById('priceInput').removeAttribute('max');
+    document.getElementById('priceInput').placeholder = 'e.g. 85';
+    document.getElementById('priceError').style.display = 'none';
+  }
+}
+
+function validatePrice(val) {
+  const sel = document.getElementById('productTypeSelect');
+  const ptId = parseInt(sel?.value);
+  const range = RANGES_MAP[ptId];
+  const errEl = document.getElementById('priceError');
+  if (!range || !val) { errEl.style.display = 'none'; return; }
+  const price = parseFloat(val);
+  if (price < range.min) {
+    errEl.textContent = `❌ Price too low! Minimum is ${range.min} DA/kg for ${range.season}`;
+    errEl.style.display = 'block';
+  } else if (price > range.max) {
+    errEl.textContent = `❌ Price too high! Maximum is ${range.max} DA/kg for ${range.season}`;
+    errEl.style.display = 'block';
+  } else {
+    errEl.textContent = `✅ Price is within the allowed range (${range.min}–${range.max} DA)`;
+    errEl.style.display = 'block';
+    errEl.style.color = '#2e7d32';
+  }
+}
+</script>
+{% endblock %}
+

@@ -1,0 +1,97 @@
+{% extends 'ministry/ministry_base.html' %}
+{% block title %}Manage Orders{% endblock %}
+{% block topbar_title %}📦 Manage Orders{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>📦 Order Management</h1>
+    <p>Monitor and manage all platform orders</p>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><h4>Total Orders</h4><p>{{ stats.total }}</p></div>
+  <div class="stat-card orange"><h4>Pending</h4><p>{{ stats.pending }}</p></div>
+  <div class="stat-card blue"><h4>In Transit</h4><p>{{ stats.in_transit }}</p></div>
+  <div class="stat-card teal"><h4>Delivered</h4><p>{{ stats.delivered }}</p></div>
+  <div class="stat-card red"><h4>Cancelled</h4><p>{{ stats.cancelled }}</p></div>
+</div>
+
+<!-- Revenue -->
+<div class="table-card" style="padding:20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;">
+  <div style="font-size:36px;">💰</div>
+  <div>
+    <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;">Total Revenue (Delivered)</div>
+    <div style="font-size:28px;font-weight:700;color:#1e4620;">{{ stats.revenue|floatformat:2 }} DA</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<form method="get" class="controls-bar">
+  <input type="text" name="q" value="{{ search }}" placeholder="Search buyer, farmer, order ID…">
+  <select name="status" onchange="this.form.submit()">
+    <option value="">All Status</option>
+    {% for code, label in status_choices %}
+    <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn btn-primary" type="submit">Filter</button>
+  {% if search or status_filter %}<a href="{% url 'ministry_orders' %}" class="btn btn-danger">Clear</a>{% endif %}
+</form>
+
+<div class="table-card">
+  <div class="table-card-header">
+    <h3>Orders ({{ orders|length }})</h3>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Buyer</th><th>Farmer</th><th>Amount</th><th>Status</th><th>Date</th><th>Change Status</th></tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+        <tr>
+          <td><strong>#{{ order.id }}</strong></td>
+          <td>{{ order.buyer.username }}</td>
+          <td>{{ order.farmer.username }}</td>
+          <td><strong>{{ order.total_amount|floatformat:2 }} DA</strong></td>
+          <td id="status-badge-{{ order.id }}">
+            {% if order.status == 'delivered' %}<span class="badge badge-green">✓ Delivered</span>
+            {% elif order.status == 'pending' %}<span class="badge badge-orange">⏳ Pending</span>
+            {% elif order.status == 'in_transit' %}<span class="badge badge-blue">🚚 In Transit</span>
+            {% elif order.status == 'cancelled' %}<span class="badge badge-red">✗ Cancelled</span>
+            {% elif order.status == 'confirmed' %}<span class="badge badge-teal">✓ Confirmed</span>
+            {% else %}<span class="badge badge-grey">{{ order.status }}</span>{% endif %}
+          </td>
+          <td>{{ order.created_at|date:"d M Y" }}</td>
+          <td>
+            <select class="controls-bar" style="padding:6px 10px;" onchange="changeStatus({{ order.id }}, this.value)">
+              {% for code, label in status_choices %}
+              <option value="{{ code }}" {% if order.status == code %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" style="text-align:center;color:#aaa;padding:40px;">No orders found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function changeStatus(orderId, newStatus) {
+  const data = await apiPost(`/ministry/orders/${orderId}/status/`, {status: newStatus});
+  if (data.status === 'ok') {
+    showToast(`Order #${orderId} updated to ${newStatus} ✓`);
+    setTimeout(() => location.reload(), 800);
+  } else {
+    showToast('Update failed', false);
+  }
+}
+</script>
+{% endblock %}

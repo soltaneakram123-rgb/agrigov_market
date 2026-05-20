@@ -1,0 +1,182 @@
+{% extends 'buyer_base.html' %}
+{% block title %}My Orders{% endblock %}
+{% block topbar_title %}📦 My Orders{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="header-left">
+    <h1>My Orders</h1>
+    <p>View and manage all your orders on the platform</p>
+  </div>
+</div>
+
+{% if pending_offers_count %}
+<div style="margin:0 0 16px;background:#fff3e0;border:2px solid #ff9800;border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:12px;">
+  <span style="font-size:24px;">🔔</span>
+  <div>
+    <strong style="color:#e65100;font-size:14px;">لديك {{ pending_offers_count }} عرض شحن في انتظار موافقتك!</strong>
+    <p style="margin:3px 0 0;color:#bf360c;font-size:12px;">راجع عمود الشحن واضغط "قبول" أو "رفض" على أفضل عرض.</p>
+  </div>
+</div>
+{% endif %}
+
+<div class="stats-row">
+  <div class="stat-card" onclick="filterByStatus('all',this)"><h4>Total Orders</h4><p>{{ orders|length }}</p></div>
+  <div class="stat-card blue" onclick="filterByStatus('in_transit',this)"><h4>Active Deliveries</h4><p>{{ transit_count }}</p></div>
+  <div class="stat-card" onclick="filterByStatus('delivered',this)"><h4>Completed</h4><p>{{ delivered_count }}</p></div>
+  <div class="stat-card orange" onclick="filterByStatus('pending',this)"><h4>Pending</h4><p>{{ pending_count }}</p></div>
+  <div class="stat-card purple"><h4>Total Spent</h4><p>{{ total_spent|floatformat:0 }} DA</p></div>
+</div>
+
+<div class="controls">
+  <input type="text" id="searchInput" placeholder="🔍 Search product, order ID...">
+</div>
+
+<div class="table-container">
+  <div class="table-header">
+    <h3>📋 Orders List</h3>
+    <span style="font-size:13px;color:#777;" id="resultCount">{{ orders|length }} orders</span>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Order ID</th><th>Products</th><th>Qty</th><th>Products Total</th><th>Shipping</th><th>Grand Total</th><th>Delivery Address</th><th>Date</th><th>Status</th><th>Actions</th></tr>
+    </thead>
+    <tbody id="ordersBody">
+      {% for order in orders %}
+      <tr data-status="{{ order.status }}">
+        <td><strong>#{{ order.id }}</strong>
+              <br><a href="{% url 'chat_room' order.id %}" style="font-size:11px;color:#2e8b42;font-weight:600;text-decoration:none;">💬 Chat</a></td>
+        <td>{% for item in order.items.all %}{{ item.product.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+        <td>{% for item in order.items.all %}{{ item.quantity_kg }}kg{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+        <td><strong>{{ order.total_amount }} DA</strong></td>
+        <td>
+          {# ── Show the best (lowest) pending offer from transporters ── #}
+          {% if order.best_offer %}
+            <div>
+              <div style="font-size:11px;color:#777;margin-bottom:3px;">Best offer:</div>
+              <strong style="color:#1565c0;font-size:15px;">{{ order.best_offer.proposed_price }} DA</strong>
+              <div style="font-size:11px;color:#555;margin-top:2px;">
+                by {{ order.best_offer.transporter.get_full_name|default:order.best_offer.transporter.username }}
+              </div>
+              {% if order.shipping_approval == 'approved' %}
+                <div style="margin-top:4px;font-size:11px;color:#2e8b42;font-weight:600;">✅ Accepted — transporter assigned</div>
+              {% else %}
+                <div style="margin-top:6px;">
+                  <span style="display:block;font-size:11px;color:#e65100;font-weight:600;margin-bottom:5px;">⏳ Awaiting your decision</span>
+                  <form method="post" action="{% url 'approve_shipping_price' order.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="approve">
+                    <button type="submit" style="background:#2e8b42;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600;margin-right:4px;">✅ قبول</button>
+                  </form>
+                  <form method="post" action="{% url 'approve_shipping_price' order.id %}" style="display:inline;" onsubmit="return confirm('رفض هذا العرض؟ سيبقى العرض التالي الأرخص متاحاً.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="reject">
+                    <button type="submit" style="background:#fee2e2;color:#b91c1c;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600;">❌ رفض</button>
+                  </form>
+                </div>
+              {% endif %}
+            </div>
+          {% elif order.shipping_approval == 'approved' and order.shipping_price %}
+            <div>
+              <strong style="color:#2e8b42;">{{ order.shipping_price }} DA</strong>
+              <div style="margin-top:4px;font-size:11px;color:#2e8b42;font-weight:600;">✅ مقبول — الناقل في الطريق</div>
+            </div>
+          {% else %}
+            <span style="color:#aaa;font-size:12px;">⏳ في انتظار عروض الناقلين</span>
+          {% endif %}
+        </td>
+        <td><strong style="color:#1e4620;">{{ order.grand_total|floatformat:2 }} DA</strong></td>
+        <td>
+          {% if order.shipping_address %}
+          <div style="font-size:11px;line-height:1.5;color:#555;">
+            <div>📍 <strong>{{ order.shipping_wilaya }}</strong></div>
+            <div>{{ order.shipping_address }}</div>
+            <div>📞 {{ order.shipping_phone }}</div>
+          </div>
+          {% else %}<span style="color:#aaa;">—</span>{% endif %}
+        </td>
+        <td>{{ order.created_at|date:"d M Y" }}</td>
+        <td>
+          {% if order.status == 'pending' %}<span class="badge badge-pending">⏳ Pending</span>
+          {% elif order.status == 'confirmed' %}<span class="badge badge-confirmed">✅ Confirmed</span>
+          {% elif order.status == 'in_transit' %}<span class="badge badge-transit">🚚 Shipping</span>
+          {% elif order.status == 'delivered' %}<span class="badge badge-delivered">📦 Delivered</span>
+          {% else %}<span class="badge badge-cancelled">❌ Cancelled</span>{% endif %}
+        </td>
+        <td>
+          <button class="btn btn-view"
+            onclick="viewOrder('{{ order.id }}','{% for item in order.items.all %}{{ item.product.name }}{% if not forloop.last %}, {% endif %}{% endfor %}','{{ order.total_amount }}','{{ order.created_at|date:"d M Y" }}','{{ order.status }}','{{ order.farmer.username }}')">
+            👁 View
+          </button>
+          {% if order.status == 'in_transit' or order.status == 'confirmed' %}
+          <a href="{% url 'buyer_delivery' %}" class="btn btn-reorder" style="text-decoration:none;">📍 Track</a>
+          {% endif %}
+          {% if order.status == 'pending' %}
+          <form method="post" action="{% url 'cancel_order' order.id %}" style="display:inline;" onsubmit="return confirm('Cancel this order?')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-cancel">❌ Cancel</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px;">No orders yet. <a href="{% url 'buyer_dashboard' %}">Start shopping →</a></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="no-result" id="noResult">
+    <p style="font-size:36px;">🔍</p><p style="margin-top:10px;">No orders found.</p>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3>📦 Order Details</h3>
+    <div class="modal-row"><span>Order ID</span><strong id="m-id"></strong></div>
+    <div class="modal-row"><span>Products</span><strong id="m-product"></strong></div>
+    <div class="modal-row"><span>Total Amount</span><strong id="m-amount"></strong></div>
+    <div class="modal-row"><span>Date</span><strong id="m-date"></strong></div>
+    <div class="modal-row"><span>Status</span><strong id="m-status"></strong></div>
+    <div class="modal-row"><span>Farmer</span><strong id="m-farmer"></strong></div>
+    <div class="modal-actions">
+      <button class="modal-close" onclick="closeModal('modalBg')">Close</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let statusFilter = 'all';
+function filterByStatus(s, card) {
+  statusFilter = s;
+  document.querySelectorAll('.stat-card').forEach(c => c.style.background = '');
+  if (card) card.style.background = '#e8f5e9';
+  applyFilters();
+}
+function applyFilters() {
+  const q = document.getElementById("searchInput").value.toLowerCase();
+  const rows = document.querySelectorAll("#ordersBody tr");
+  let visible = 0;
+  rows.forEach(row => {
+    const matchQ = q === "" || row.textContent.toLowerCase().includes(q);
+    const matchS = statusFilter === 'all' || row.dataset.status === statusFilter;
+    const show = matchQ && matchS;
+    row.style.display = show ? "" : "none";
+    if (show) visible++;
+  });
+  document.getElementById("resultCount").textContent = visible + " order" + (visible !== 1 ? "s" : "");
+  document.getElementById("noResult").style.display = visible === 0 ? "block" : "none";
+}
+document.getElementById("searchInput").addEventListener("keyup", applyFilters);
+function viewOrder(id, product, amount, date, status, farmer) {
+  document.getElementById('m-id').textContent = '#' + id;
+  document.getElementById('m-product').textContent = product;
+  document.getElementById('m-amount').textContent = amount + ' DA';
+  document.getElementById('m-date').textContent = date;
+  document.getElementById('m-status').textContent = status;
+  document.getElementById('m-farmer').textContent = farmer;
+  document.getElementById('modalBg').classList.add('open');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends base_template %}
+{% block title %}Messages{% endblock %}
+{% block topbar_title %}💬 Messages{% endblock %}
+
+{% block extra_style %}
+.chat-list-grid{display:flex;flex-direction:column;gap:12px;margin:20px;}
+.order-chat-card{background:white;border-radius:14px;padding:18px 22px;box-shadow:0 2px 12px rgba(0,0,0,0.07);display:flex;align-items:center;gap:16px;text-decoration:none;color:inherit;transition:.2s;border-left:4px solid #e0e0e0;}
+.order-chat-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.1);}
+.order-chat-card.has-unread{border-left-color:#2e8b42;}
+.oc-icon{width:48px;height:48px;border-radius:12px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.oc-info{flex:1;min-width:0;}
+.oc-title{font-size:14px;font-weight:700;color:#1e4620;margin-bottom:3px;}
+.oc-sub{font-size:12px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.oc-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
+.unread-badge{background:#2e8b42;color:white;border-radius:50%;font-size:11px;font-weight:700;width:20px;height:20px;display:flex;align-items:center;justify-content:center;}
+.oc-time{font-size:11px;color:#aaa;}
+.status-pill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;display:inline-block;}
+.s-pending{background:#fff3e0;color:#e65100;}
+.s-confirmed{background:#e3f2fd;color:#1565c0;}
+.s-in_transit{background:#f3e5f5;color:#6a1b9a;}
+.s-delivered{background:#e8f5e9;color:#2e7d32;}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1>💬 Messages</h1><p style="color:#888;font-size:13px;">Chat with parties involved in your orders</p></div>
+</div>
+
+{% if order_data %}
+<div class="chat-list-grid">
+  {% for od in order_data %}
+  <a href="{% url 'chat_room' od.order.id %}" class="order-chat-card {% if od.unread %}has-unread{% endif %}">
+    <div class="oc-icon">📦</div>
+    <div class="oc-info">
+      <div class="oc-title">
+        Order #{{ od.order.id }}
+        <span class="status-pill s-{{ od.order.status }}">{{ od.order.get_status_display }}</span>
+      </div>
+      <div class="oc-sub">
+        🌾 {{ od.order.farmer.username }} &nbsp;·&nbsp; 🛒 {{ od.order.buyer.username }}
+        {% if od.order.delivery.transporter %}&nbsp;·&nbsp; 🚚 {{ od.order.delivery.transporter.username }}{% endif %}
+      </div>
+      <div class="oc-sub" style="margin-top:4px;">
+        {% if od.last_msg %}
+          <strong>{{ od.last_msg.sender.username }}:</strong> {{ od.last_msg.body|truncatechars:60 }}
+        {% else %}
+          No messages yet — start the conversation
+        {% endif %}
+      </div>
+    </div>
+    <div class="oc-meta">
+      {% if od.unread %}<span class="unread-badge">{{ od.unread }}</span>{% endif %}
+      {% if od.last_msg %}<span class="oc-time">{{ od.last_msg.created_at|date:"d M, H:i" }}</span>{% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div style="background:white;border-radius:14px;padding:60px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin:20px;">
+  <div style="font-size:52px;margin-bottom:16px;">💬</div>
+  <h3 style="color:#1e4620;margin-bottom:8px;">No conversations yet</h3>
+  <p style="color:#aaa;">Messages appear here once you have active orders.</p>
+</div>
+{% endif %}
+{% endblock %}

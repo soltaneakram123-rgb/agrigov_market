@@ -1,0 +1,21 @@
+{% extends 'farmer_base.html' %}
+{% block title %}Register Farm{% endblock %}
+{% block content %}
+<div class="header"><h1>🌾 Register Your Farm</h1></div>
+<div style="margin:20px;background:white;border-radius:12px;padding:30px;max-width:500px;box-shadow:0 5px 15px rgba(0,0,0,0.08);">
+  <form method="post">
+    {% csrf_token %}
+    <div class="modal-field">
+      <label>Farm Name</label>
+      <input type="text" name="name" placeholder="e.g. Green Valley Farm" required style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none;">
+    </div>
+    <div class="modal-field" style="margin-top:15px;">
+      <label>Location (Wilaya)</label>
+      <input type="text" name="location" placeholder="e.g. Algiers" required style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none;">
+    </div>
+    <div style="margin-top:20px;">
+      <button type="submit" class="add-btn" style="background:#2e8b42;color:white;border:none;cursor:pointer;">✅ Register Farm</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

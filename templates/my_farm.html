@@ -1,0 +1,64 @@
+{% extends 'farmer_base.html' %}
+{% block title %}My Farms{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="header-left">
+    <h1>🌾 My Farms</h1>
+    <p>Manage all your registered farms</p>
+  </div>
+  <a href="{% url 'create_farm' %}" class="add-btn">➕ Add New Farm</a>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><h4>Total Farms</h4><p>{{ farms|length }}</p></div>
+  <div class="stat-card blue"><h4>Total Products</h4><p>{{ total_products }}</p></div>
+  <div class="stat-card orange"><h4>Total Orders</h4><p>{{ total_orders }}</p></div>
+  <div class="stat-card green"><h4>Revenue</h4><p>{{ total_revenue|floatformat:0 }} DA</p></div>
+</div>
+
+{% if farms %}
+<div style="margin:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;">
+  {% for farm in farms %}
+  <div style="background:white;border-radius:14px;box-shadow:0 5px 15px rgba(0,0,0,0.08);overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#2e8b42,#1e4620);color:white;padding:24px;">
+      <h2 style="font-size:20px;margin:0;">{{ farm.name }}</h2>
+      <p style="opacity:0.85;margin-top:5px;font-size:14px;">📍 {{ farm.location }}</p>
+    </div>
+    <div style="padding:20px;">
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f0;">
+        <span style="color:#777;font-size:13px;">Registered Since</span>
+        <strong style="color:#1e4620;font-size:13px;">{{ farm.created_at|date:"d M Y" }}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 0;">
+        <span style="color:#777;font-size:13px;">Products</span>
+        <strong style="color:#2e8b42;font-size:13px;">{{ farm.product_set.count }}</strong>
+      </div>
+      <div style="margin-top:15px;display:flex;gap:10px;">
+        <a href="{% url 'add_product' %}?farm_id={{ farm.id }}"
+           style="flex:1;text-align:center;padding:9px;background:#2e8b42;color:white;border-radius:8px;font-size:13px;text-decoration:none;font-weight:600;">
+          ➕ Add Product
+        </a>
+        <form method="post" action="{% url 'delete_farm' farm.id %}"
+              onsubmit="return confirm('Delete farm \'{{ farm.name }}\'? Products in this farm will also be removed.');"
+              style="flex:0;">
+          {% csrf_token %}
+          <button type="submit"
+                  style="padding:9px 14px;background:#fee2e2;color:#b91c1c;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600;">
+            🗑️
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div style="margin:20px;background:white;border-radius:12px;padding:50px;text-align:center;box-shadow:0 5px 15px rgba(0,0,0,0.08);">
+  <p style="font-size:48px;">🌾</p>
+  <h3 style="color:#1e4620;margin:15px 0 8px;">No Farms Registered Yet</h3>
+  <p style="color:#777;margin-bottom:20px;">Register your first farm to start selling products.</p>
+  <a href="{% url 'create_farm' %}" class="add-btn" style="background:#2e8b42;color:white;">➕ Register My First Farm</a>
+</div>
+{% endif %}
+{% endblock %}

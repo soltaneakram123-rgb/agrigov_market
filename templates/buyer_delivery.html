@@ -1,0 +1,122 @@
+{% extends 'buyer_base.html' %}
+{% block title %}Delivery & Tracking{% endblock %}
+{% block topbar_title %}🚚 Delivery & Tracking{% endblock %}
+
+{% block extra_style %}
+.tracking-hero{background:linear-gradient(135deg,#2e8b42,#1e4620);color:white;padding:25px 30px;margin:20px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;}
+.tracking-id{background:rgba(255,255,255,0.15);padding:8px 16px;border-radius:8px;font-weight:bold;font-family:monospace;font-size:13px;}
+.eta-box{background:rgba(255,255,255,0.15);padding:10px 18px;border-radius:8px;text-align:center;}
+.eta-box span{font-size:11px;opacity:0.8;display:block;}
+.eta-box strong{font-size:16px;}
+.timeline-card{background:white;border-radius:12px;padding:22px;box-shadow:0 5px 15px rgba(0,0,0,0.08);margin:20px;}
+.timeline-card h3{color:#1e4620;margin-bottom:20px;font-size:15px;}
+.timeline{display:flex;flex-direction:column;gap:0;}
+.step{display:flex;align-items:flex-start;gap:16px;padding-bottom:20px;position:relative;}
+.step:not(:last-child)::after{content:'';position:absolute;left:17px;top:36px;width:2px;height:calc(100% - 16px);background:#e0e0e0;}
+.step-dot{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;color:white;flex-shrink:0;z-index:1;}
+.step-dot.done{background:#2e8b42;}
+.step-dot.active{background:#42a5f5;box-shadow:0 0 0 4px rgba(66,165,245,0.2);}
+.step-dot.pending{background:#e0e0e0;}
+.step-title{font-size:14px;font-weight:bold;color:#1e4620;margin-bottom:3px;}
+.step-title.pending{color:#aaa;}
+.step-time{font-size:12px;color:#aaa;}
+.orders-table{width:100%;border-collapse:collapse;}
+.orders-table th,.orders-table td{padding:12px 14px;text-align:center;border-bottom:1px solid #f0f0f0;font-size:13px;}
+.orders-table th{background:#f8f8f8;color:#1e4620;font-size:12px;text-transform:uppercase;}
+.badge.in-transit{background:#e3f2fd;color:#1565c0;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:bold;}
+.badge.delivered{background:#d4edda;color:#155724;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:bold;}
+.badge.pending-badge{background:#fff3cd;color:#856404;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:bold;}
+.btn-track{background:#e3f2fd;color:#1565c0;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;margin:2px;}
+.dark .timeline-card{background:#1e1e1e;}
+.dark .step-title{color:#88d982;}
+.dark .orders-table th{background:#2a2a2a;color:#88d982;}
+.dark .orders-table td{border-bottom-color:#2a2a2a;color:#ddd;}
+{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="header-left">
+    <h1>Delivery & Tracking</h1>
+    <p>Follow your shipments in real-time</p>
+  </div>
+</div>
+
+{% if active_order %}
+<div class="tracking-hero">
+  <div>
+    <h2>🚛 Active Shipment</h2>
+    <p>Order #{{ active_order.id }} — {% for item in active_order.items.all %}{{ item.product.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+  </div>
+  <div style="display:flex;gap:15px;align-items:center;flex-wrap:wrap;">
+    <div class="tracking-id">🔍 AGR-TRK-{{ active_order.id }}-2026</div>
+    <div class="eta-box"><span>Status</span><strong>{{ active_order.get_status_display }}</strong></div>
+  </div>
+</div>
+
+<div style="margin:20px;">
+  <div class="timeline-card">
+    <h3>📦 Shipment Status — Order #{{ active_order.id }}</h3>
+    <div class="timeline">
+      <div class="step">
+        <div class="step-dot done">✓</div>
+        <div><div class="step-title">Order Placed</div><div class="step-time">{{ active_order.created_at|date:"d M Y, H:i" }}</div></div>
+      </div>
+      <div class="step">
+        <div class="step-dot {% if active_order.status != 'pending' %}done{% else %}pending{% endif %}">{% if active_order.status != 'pending' %}✓{% endif %}</div>
+        <div><div class="step-title {% if active_order.status == 'pending' %}pending{% endif %}">Confirmed by Farmer</div>
+        <div class="step-time">{% if active_order.status != 'pending' %}Confirmed{% else %}Waiting...{% endif %}</div></div>
+      </div>
+      <div class="step">
+        <div class="step-dot {% if active_order.status == 'in_transit' or active_order.status == 'delivered' %}done{% elif active_order.status == 'confirmed' %}active{% else %}pending{% endif %}">
+          {% if active_order.status == 'in_transit' or active_order.status == 'delivered' %}✓{% endif %}
+        </div>
+        <div><div class="step-title {% if active_order.status == 'pending' %}pending{% endif %}">In Transit</div>
+        <div class="step-time">{% if active_order.status == 'in_transit' %}🔄 Out for delivery{% elif active_order.status == 'delivered' %}Done{% else %}Pending{% endif %}</div></div>
+      </div>
+      <div class="step">
+        <div class="step-dot {% if active_order.status == 'delivered' %}done{% else %}pending{% endif %}">{% if active_order.status == 'delivered' %}✓{% endif %}</div>
+        <div><div class="step-title {% if active_order.status != 'delivered' %}pending{% endif %}">Delivered</div>
+        <div class="step-time">{% if active_order.status == 'delivered' %}Completed{% else %}Pending{% endif %}</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div style="margin:20px;background:white;border-radius:12px;padding:50px;text-align:center;box-shadow:0 5px 15px rgba(0,0,0,0.08);">
+  <p style="font-size:48px;">🚚</p>
+  <h3 style="color:#1e4620;margin:15px 0 8px;">No Active Deliveries</h3>
+  <p style="color:#777;margin-bottom:20px;">You have no shipments in transit right now.</p>
+  <a href="{% url 'buyer_dashboard' %}" style="background:#2e8b42;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;">🛒 Browse Products</a>
+</div>
+{% endif %}
+
+<div style="margin:20px;">
+  <h3 style="color:#1e4620;margin-bottom:15px;font-size:15px;">📋 All Deliveries</h3>
+  <div style="background:white;border-radius:12px;padding:20px;box-shadow:0 5px 15px rgba(0,0,0,0.08);">
+    <table class="orders-table">
+      <thead>
+        <tr><th>Order #</th><th>Products</th><th>Farmer</th><th>Date</th><th>Total</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+        <tr>
+          <td><strong>#{{ order.id }}</strong></td>
+          <td>{% for item in order.items.all %}{{ item.product.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+          <td>{{ order.farmer.username }}</td>
+          <td>{{ order.created_at|date:"d M Y" }}</td>
+          <td>{{ order.total_amount }} DA</td>
+          <td>
+            {% if order.status == 'in_transit' %}<span class="badge in-transit">🚚 In Transit</span>
+            {% elif order.status == 'delivered' %}<span class="badge delivered">✅ Delivered</span>
+            {% elif order.status == 'confirmed' %}<span class="badge in-transit">✅ Confirmed</span>
+            {% else %}<span class="badge pending-badge">⏳ Pending</span>{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align:center;color:#aaa;padding:30px;">No orders yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

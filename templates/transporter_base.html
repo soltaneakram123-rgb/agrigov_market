@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Transporter Dashboard{% endblock %} | AgriGov</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif;}
+body{display:flex;background:#f0f2f5;transition:0.3s;}
+.sidebar{width:240px;height:100vh;background:#1e4620;color:white;position:fixed;padding-top:25px;z-index:100;}
+.logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:30px;font-size:20px;font-weight:bold;}
+.logo img{width:40px;height:40px;border-radius:50%;border:2px solid white;}
+.sidebar ul{list-style:none;}
+.sidebar ul li a{display:flex;align-items:center;gap:10px;padding:15px 25px;color:white;text-decoration:none;transition:0.3s;}
+.sidebar ul li a:hover,.sidebar ul li.active a{background:#2e8b42;}
+.main{margin-left:240px;width:100%;}
+.topbar{height:70px;background:white;display:flex;justify-content:space-between;align-items:center;padding:0 30px;box-shadow:0 2px 10px rgba(0,0,0,0.12);}
+.profile{display:flex;align-items:center;gap:10px;}
+.profile img{width:40px;height:40px;border-radius:50%;}
+.trans-name{font-weight:bold;color:#1e4620;}
+.logout-btn{background:#ffb3b3;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;}
+.logout-btn:hover{background:#ff8a8a;}
+.theme-btn{background:#eee;border:none;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:16px;}
+.header{background:linear-gradient(135deg,#2e8b42,#1e4620);color:white;padding:30px;margin:20px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;}
+.header p{opacity:0.85;margin-top:5px;}
+.stats-row{display:flex;gap:15px;margin:20px;flex-wrap:wrap;}
+.stat-card{flex:1;min-width:130px;background:white;padding:18px 20px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.06);border-left:4px solid #2e8b42;transition:0.3s;cursor:pointer;}
+.stat-card:hover{transform:translateY(-3px);}
+.stat-card.active-filter{background:#e8f5e9;border-left-color:#1e4620;}
+.stat-card h4{font-size:12px;color:#777;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.stat-card p{font-size:22px;font-weight:bold;color:#1e4620;}
+.stat-card.orange{border-left-color:#f0ad4e;}.stat-card.orange p{color:#856404;}
+.stat-card.blue{border-left-color:#42a5f5;}.stat-card.blue p{color:#1565c0;}
+.stat-card.purple{border-left-color:#ab47bc;}.stat-card.purple p{color:#6a1b9a;}
+.filter-bar{display:flex;gap:10px;margin:0 20px 15px;flex-wrap:wrap;align-items:center;}
+.filter-bar input,.filter-bar select{padding:9px 14px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none;background:white;transition:0.3s;}
+.filter-bar input{flex:1;min-width:180px;}
+.filter-bar input:focus,.filter-bar select:focus{border-color:#2e8b42;box-shadow:0 0 0 3px rgba(46,139,66,0.1);}
+.table-container{margin:20px;background:white;border-radius:12px;padding:20px;box-shadow:0 5px 15px rgba(0,0,0,0.08);}
+.table-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;}
+.table-header h3{color:#1e4620;font-size:15px;}
+table{width:100%;border-collapse:collapse;}
+th,td{padding:13px 14px;text-align:center;border-bottom:1px solid #f0f0f0;font-size:13px;}
+th{background:#f8f8f8;color:#1e4620;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;}
+tr:hover td{background:#f5fbf6;}
+.btn{padding:6px 13px;border:none;border-radius:8px;cursor:pointer;font-size:12px;margin:2px;font-weight:600;transition:0.3s;}
+.btn-accept{background:#c8e6c9;color:#2e7d32;}.btn-accept:hover{background:#2e8b42;color:white;}
+.btn-decline{background:#ffcdd2;color:#b71c1c;}.btn-decline:hover{background:#e53935;color:white;}
+.btn-details{background:#e3f2fd;color:#1565c0;}.btn-details:hover{background:#1565c0;color:white;}
+.btn-msg{background:#f3e5f5;color:#6a1b9a;}.btn-msg:hover{background:#7b1fa2;color:white;}
+.btn-edit{background:#e3f2fd;color:#1565c0;}.btn-edit:hover{background:#1565c0;color:white;}
+.btn-delete{background:#ffcdd2;color:#b71c1c;}.btn-delete:hover{background:#e53935;color:white;}
+.badge{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:bold;}
+.b-done,.b-delivered{background:#d4edda;color:#155724;}
+.b-progress,.b-transit{background:#e3f2fd;color:#1565c0;}
+.b-pending{background:#fff3cd;color:#856404;}
+.b-declined{background:#f8d7da;color:#721c24;}
+.priority-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:bold;}
+.p-high{background:#ffebee;color:#c62828;}
+.p-normal{background:#e8f5e9;color:#2e7d32;}
+.no-result{text-align:center;padding:40px;color:#aaa;display:none;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;z-index:1000;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:white;padding:30px;border-radius:14px;width:500px;max-width:92%;box-shadow:0 10px 40px rgba(0,0,0,0.2);max-height:90vh;overflow-y:auto;}
+.modal h3{color:#1e4620;margin-bottom:20px;font-size:17px;}
+.modal-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;}
+.modal-row:last-of-type{border-bottom:none;}
+.modal-row span{color:#777;}.modal-row strong{color:#1e4620;}
+.modal-section{background:#f8f8f8;padding:14px;border-radius:8px;margin:12px 0;font-size:13px;color:#444;}
+.modal-section h4{color:#1e4620;margin-bottom:8px;font-size:13px;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:15px;flex-wrap:wrap;}
+.modal-accept{background:#2e8b42;color:white;border:none;padding:9px 20px;border-radius:8px;cursor:pointer;font-weight:bold;}
+.modal-decline{background:#e53935;color:white;border:none;padding:9px 20px;border-radius:8px;cursor:pointer;font-weight:bold;}
+.modal-close,.modal-cancel{background:#eee;border:none;padding:9px 20px;border-radius:8px;cursor:pointer;font-weight:bold;}
+.modal-save{background:#2e8b42;color:white;border:none;padding:9px 22px;border-radius:8px;cursor:pointer;font-weight:bold;}
+.modal-field{margin-bottom:14px;}
+.modal-field label{font-size:12px;color:#777;display:block;margin-bottom:5px;text-transform:uppercase;}
+.modal-field input,.modal-field select,.modal-field textarea{width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none;transition:0.3s;font-family:inherit;}
+.modal-field input:focus,.modal-field select:focus,.modal-field textarea:focus{border-color:#2e8b42;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+#toast{position:fixed;bottom:30px;right:30px;background:#1e4620;color:white;padding:14px 22px;border-radius:10px;font-size:14px;font-weight:bold;box-shadow:0 5px 20px rgba(0,0,0,0.2);display:none;z-index:9999;}
+.dark{background:#121212;}
+.dark .topbar,.dark .table-container,.dark .stat-card,.dark .modal{background:#1e1e1e;color:white;}
+.dark .sidebar{background:#111;}
+.dark th{background:#2a2a2a;color:#88d982;}
+.dark td{border-bottom-color:#2a2a2a;color:#ddd;}
+.dark tr:hover td{background:#1a2e1f;}
+.dark .filter-bar input,.dark .filter-bar select{background:#2a2a2a;color:white;border-color:#333;}
+.dark .stat-card h4{color:#aaa;}.dark .stat-card p{color:#88d982;}
+.dark .modal-row{border-bottom-color:#2a2a2a;}
+.dark .modal-row span{color:#aaa;}.dark .modal-row strong{color:#88d982;}
+.dark .modal-section{background:#2a2a2a;color:#ccc;}
+.dark .modal-section h4{color:#88d982;}
+.dark .modal-close,.dark .modal-cancel{background:#333;color:#ccc;}
+.dark .modal-field label{color:#aaa;}
+.dark .modal-field input,.dark .modal-field select,.dark .modal-field textarea{background:#2a2a2a;color:white;border-color:#333;}
+.dark .trans-name{color:#88d982;}
+{% block extra_style %}{% endblock %}
+</style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="logo">
+    <img src="https://cdn-icons-png.flaticon.com/512/2/2036.png" alt="logo">
+    <span>AgriGov</span>
+  </div>
+  <ul>
+    <li {% if active_page == 'missions' %}class="active"{% endif %}>
+      <a href="{% url 'transporter_dashboard' %}" style="position:relative;">
+        📋 My Missions
+        {% if accepted_offers_count %}
+        <span style="position:absolute;top:-6px;right:-14px;background:#e53935;color:white;border-radius:50%;font-size:10px;font-weight:700;width:17px;height:17px;line-height:17px;text-align:center;display:inline-block;">{{ accepted_offers_count }}</span>
+        {% endif %}
+      </a>
+    </li>
+    <li {% if active_page == 'news' %}class="active"{% endif %}><a href="{% url 'transporter_news' %}">📰 Service News</a></li>
+    <li {% if active_page == 'areas' %}class="active"{% endif %}><a href="{% url 'transporter_areas' %}">🗺 Service Areas</a></li>
+    <li {% if active_page == 'vehicle' %}class="active"{% endif %}><a href="{% url 'transporter_vehicle' %}">🚛 Vehicle Info</a></li>
+    <li {% if active_page == 'messages' %}class="active"{% endif %}><a href="{% url 'chat_list' %}">💬 Messages</a></li>
+    <li {% if active_page == 'profile' %}class="active"{% endif %}><a href="{% url 'transporter_profile' %}">👤 Profile</a></li>
+    <li {% if active_page == 'settings' %}class="active"{% endif %}><a href="{% url 'transporter_settings' %}">⚙ Settings</a></li>
+  </ul>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h3>{% block topbar_title %}🚛 Transporter Dashboard{% endblock %}</h3>
+    <div class="profile">
+      <button id="themeToggle" class="theme-btn">🌙</button>
+      <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="avatar">
+      <span class="trans-name">{{ user.username }}</span>
+      <form method="post" action="{% url 'logout' %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="logout-btn">🚪 Logout</button>
+      </form>
+    </div>
+  </div>
+
+  {% if messages %}
+  <div style="margin:10px 20px 0;">
+    {% for message in messages %}
+    <div style="background:{% if 'error' in message.tags %}#f8d7da;color:#721c24{% else %}#d4edda;color:#155724{% endif %};padding:12px 18px;border-radius:8px;margin-bottom:8px;font-size:13px;">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+</div>
+
+<div id="toast"></div>
+<script>
+const toggleBtn = document.getElementById("themeToggle");
+toggleBtn.onclick = function() {
+  document.body.classList.toggle("dark");
+  const d = document.body.classList.contains("dark");
+  toggleBtn.textContent = d ? "☀" : "🌙";
+  localStorage.setItem("theme", d ? "dark" : "light");
+};
+if (localStorage.getItem("theme") === "dark") { document.body.classList.add("dark"); toggleBtn.textContent = "☀"; }
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.style.display = "block";
+  setTimeout(() => { t.style.display = "none"; }, 3000);
+}
+function closeModals() { document.querySelectorAll(".modal-bg").forEach(m => m.classList.remove("open")); }
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

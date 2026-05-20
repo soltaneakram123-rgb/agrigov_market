@@ -1,0 +1,189 @@
+{% extends 'ministry/ministry_base.html' %}
+{% block title %}Manage Users{% endblock %}
+{% block topbar_title %}👥 Manage Users{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>👥 User Management</h1>
+    <p>Review, approve, and manage platform users</p>
+  </div>
+  {% if stats.pending_approvals > 0 %}
+  <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:10px;">
+    <span style="font-size:22px;">⏳</span>
+    <div>
+      <div style="font-size:18px;font-weight:700;color:white;">{{ stats.pending_approvals }}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.8);">Awaiting Approval</div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+  <div class="stat-card"><h4>Total Users</h4><p>{{ stats.total }}</p></div>
+  <div class="stat-card orange"><h4>Farmers</h4><p>{{ stats.farmers }}</p></div>
+  <div class="stat-card blue"><h4>Buyers</h4><p>{{ stats.buyers }}</p></div>
+  <div class="stat-card purple"><h4>Transporters</h4><p>{{ stats.transporters }}</p></div>
+  <div class="stat-card red"><h4>⏳ Pending Approval</h4><p>{{ stats.pending_approvals }}</p></div>
+</div>
+
+<!-- Alert if pending approvals exist -->
+{% if stats.pending_approvals > 0 %}
+<div style="background:#fff3e0;border:1.5px solid #f0ad4e;border-radius:12px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;">
+  <span style="font-size:28px;">⚠️</span>
+  <div style="flex:1;">
+    <strong style="color:#e65100;">{{ stats.pending_approvals }} user(s) waiting for approval</strong>
+    <span style="color:#888;font-size:13px;margin-left:10px;">They cannot log in until approved.</span>
+  </div>
+  <a href="?approval=pending" class="btn btn-warn" style="white-space:nowrap;">View Pending →</a>
+</div>
+{% endif %}
+
+<!-- Filters -->
+<form method="get" class="controls-bar">
+  <input type="text" name="q" value="{{ search }}" placeholder="Search by username or email…">
+  <select name="role" onchange="this.form.submit()">
+    <option value="">All Roles</option>
+    <option value="farmer"      {% if role_filter == 'farmer' %}selected{% endif %}>🌱 Farmers</option>
+    <option value="buyer"       {% if role_filter == 'buyer' %}selected{% endif %}>🛒 Buyers</option>
+    <option value="transporter" {% if role_filter == 'transporter' %}selected{% endif %}>🚚 Transporters</option>
+    <option value="ministry"    {% if role_filter == 'ministry' %}selected{% endif %}>🏛️ Ministry</option>
+  </select>
+  <select name="approval" onchange="this.form.submit()">
+    <option value="">All Approval Status</option>
+    <option value="pending"  {% if approval_filter == 'pending' %}selected{% endif %}>⏳ Pending Approval</option>
+    <option value="approved" {% if approval_filter == 'approved' %}selected{% endif %}>✅ Approved</option>
+  </select>
+  <button class="btn btn-primary" type="submit">Search</button>
+  {% if search or role_filter or approval_filter %}
+  <a href="{% url 'ministry_users' %}" class="btn btn-danger">Clear</a>
+  {% endif %}
+</form>
+
+<!-- Table -->
+<div class="table-card">
+  <div class="table-card-header">
+    <h3>Users ({{ users|length }})</h3>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Approval</th>
+          <th>Verified</th>
+          <th>Active</th>
+          <th>Joined</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr id="user-row-{{ u.id }}" {% if not u.is_approved and not u.is_superuser %}style="background:#fff8f0;"{% endif %}>
+          <td>#{{ u.id }}</td>
+          <td>
+            <strong>{{ u.username }}</strong>
+            <br><small style="color:#999;">{{ u.get_full_name }}</small>
+          </td>
+          <td>{{ u.email|default:"—" }}</td>
+          <td>
+            {% if u.role == 'farmer' %}<span class="badge badge-green">🌱 Farmer</span>
+            {% elif u.role == 'buyer' %}<span class="badge badge-blue">🛒 Buyer</span>
+            {% elif u.role == 'transporter' %}<span class="badge badge-purple">🚚 Transporter</span>
+            {% elif u.role == 'ministry' %}<span class="badge badge-orange">🏛️ Ministry</span>
+            {% else %}<span class="badge badge-grey">{{ u.role }}</span>{% endif %}
+          </td>
+
+          <!-- Approval column -->
+          <td id="approval-{{ u.id }}">
+            {% if u.is_superuser %}
+              <span class="badge badge-purple">⭐ Superuser</span>
+            {% elif u.is_approved %}
+              <span class="badge badge-green">✅ Approved</span>
+            {% else %}
+              <span class="badge badge-orange">⏳ Pending</span>
+            {% endif %}
+          </td>
+
+          <td id="verified-{{ u.id }}">
+            {% if u.is_verified %}<span class="badge badge-green">✓ Verified</span>
+            {% else %}<span class="badge badge-grey">Unverified</span>{% endif %}
+          </td>
+          <td id="active-{{ u.id }}">
+            {% if u.is_active %}<span class="badge badge-green">Active</span>
+            {% else %}<span class="badge badge-red">Blocked</span>{% endif %}
+          </td>
+          <td>{{ u.date_joined|date:"d M Y" }}</td>
+
+          <!-- Actions -->
+          <td style="white-space:nowrap;">
+            {% if not u.is_superuser %}
+              {% if not u.is_approved %}
+              <button class="btn btn-success" onclick="approveUser({{ u.id }})">✅ Approve</button>
+              {% else %}
+              <button class="btn btn-warn" onclick="approveUser({{ u.id }})">⏸ Revoke</button>
+              {% endif %}
+            {% endif %}
+
+            {% if not u.is_verified %}
+            <button class="btn btn-info" onclick="verifyUser({{ u.id }})">✓ Verify</button>
+            {% else %}
+            <button class="btn btn-warn" onclick="verifyUser({{ u.id }})">Unverify</button>
+            {% endif %}
+
+            {% if u.is_active %}
+            <button class="btn btn-danger" onclick="toggleActive({{ u.id }})">Block</button>
+            {% else %}
+            <button class="btn btn-success" onclick="toggleActive({{ u.id }})">Unblock</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" style="text-align:center;color:#aaa;padding:40px;">No users found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function approveUser(id) {
+  const data = await apiPost(`/ministry/users/${id}/approve/`, {});
+  if (data.status === 'ok') {
+    document.getElementById(`approval-${id}`).innerHTML = data.is_approved
+      ? '<span class="badge badge-green">✅ Approved</span>'
+      : '<span class="badge badge-orange">⏳ Pending</span>';
+    document.getElementById(`active-${id}`).innerHTML = data.is_approved
+      ? '<span class="badge badge-green">Active</span>'
+      : '<span class="badge badge-red">Blocked</span>';
+    showToast(data.is_approved ? 'User approved — can now login ✅' : 'Approval revoked');
+    setTimeout(() => location.reload(), 900);
+  }
+}
+async function verifyUser(id) {
+  const data = await apiPost(`/ministry/users/${id}/verify/`, {});
+  if (data.status === 'ok') {
+    document.getElementById(`verified-${id}`).innerHTML = data.is_verified
+      ? '<span class="badge badge-green">✓ Verified</span>'
+      : '<span class="badge badge-grey">Unverified</span>';
+    showToast(data.is_verified ? 'User verified ✓' : 'Verification removed');
+  }
+}
+async function toggleActive(id) {
+  const data = await apiPost(`/ministry/users/${id}/toggle-active/`, {});
+  if (data.status === 'ok') {
+    document.getElementById(`active-${id}`).innerHTML = data.is_active
+      ? '<span class="badge badge-green">Active</span>'
+      : '<span class="badge badge-red">Blocked</span>';
+    showToast(data.is_active ? 'User unblocked ✓' : 'User blocked', data.is_active);
+    setTimeout(() => location.reload(), 800);
+  }
+}
+</script>
+{% endblock %}

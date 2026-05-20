@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Create Your AgriGov Market Account</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: { "primary": "#0fbd1e", "background-light": "#f6f8f6", "background-dark": "#102212" },
+      fontFamily: { "display": ["Manrope", "sans-serif"] },
+      borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+    },
+  },
+}
+</script>
+<style>
+body { font-family: 'Manrope', sans-serif; }
+.step-section { display: none; }
+.step-section.active { display: block; }
+.role-extra { display: none; }
+.role-extra.visible { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn 0.3s ease forwards; }
+.progress-bar { transition: width 0.4s ease; }
+</style>
+</head>
+<body class="bg-background-light font-display text-slate-900 min-h-screen flex flex-col">
+
+<header class="flex items-center justify-between border-b border-primary/10 bg-white px-6 md:px-10 py-3 sticky top-0 z-50 shadow-sm">
+  <a href="{% url 'home' %}" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+      <span class="material-symbols-outlined text-white text-sm">eco</span>
+    </div>
+    <h2 class="text-lg font-bold">AgriGov Market</h2>
+  </a>
+  <div class="flex items-center gap-3">
+    <a href="{% url 'home' %}" class="hidden md:flex items-center gap-1 text-sm text-slate-500 hover:text-primary transition-colors">
+      <span class="material-symbols-outlined text-sm">arrow_back</span> Back to Home
+    </a>
+    <a href="{% url 'login' %}" class="flex items-center justify-center rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-all">Login</a>
+  </div>
+</header>
+
+<main class="flex-1 flex overflow-hidden">
+
+  <!-- Left Panel -->
+  <div class="hidden lg:flex w-1/2 relative flex-col justify-center p-12 border-r border-primary/10 bg-slate-50">
+    <div class="absolute inset-0 opacity-5 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+    <div class="relative z-10 max-w-lg">
+      <div class="mb-8 rounded-2xl overflow-hidden shadow-2xl aspect-video bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&auto=format');"></div>
+      <h1 class="text-4xl font-extrabold mb-4 text-slate-900 leading-tight">Join Algeria's Official Agricultural Marketplace</h1>
+      <p class="text-slate-600 mb-6 leading-relaxed">Connect with thousands of farmers, buyers, and transporters in a transparent, government-backed platform.</p>
+      <div class="space-y-3">
+        <div class="flex items-center gap-4 p-3 rounded-xl bg-white shadow-sm border border-primary/10"><span class="material-symbols-outlined text-primary text-2xl">verified_user</span><p class="font-semibold text-sm">Government Verified Accounts</p></div>
+        <div class="flex items-center gap-4 p-3 rounded-xl bg-white shadow-sm border border-primary/10"><span class="material-symbols-outlined text-primary text-2xl">local_shipping</span><p class="font-semibold text-sm">Real-time Logistics Tracking</p></div>
+        <div class="flex items-center gap-4 p-3 rounded-xl bg-white shadow-sm border border-primary/10"><span class="material-symbols-outlined text-primary text-2xl">price_check</span><p class="font-semibold text-sm">Official Ministry Price References</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Registration Form -->
+  <div class="w-full lg:w-1/2 overflow-y-auto px-6 py-8 md:px-14 bg-background-light">
+    <div class="max-w-xl mx-auto">
+      <div class="mb-6">
+        <h2 class="text-3xl font-bold mb-1 text-slate-900">Create Your Account</h2>
+        <p class="text-slate-500 text-sm">Join AgriGov Market in 3 simple steps.</p>
+      </div>
+
+      {% if form.errors %}
+      <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+        <span class="material-symbols-outlined text-red-500 text-xl mt-0.5">error</span>
+        <div>
+          <p class="font-semibold text-red-700 text-sm">Please fix the errors below</p>
+          {% for field, errors in form.errors.items %}{% for error in errors %}<p class="text-red-600 text-xs mt-1">{{ error }}</p>{% endfor %}{% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Progress -->
+      <div class="mb-7">
+        <div class="flex items-center justify-between mb-2">
+          <div id="stepLabel" class="text-sm font-bold text-primary">Step 1 of 3 — Choose Your Role</div>
+          <div id="stepPct" class="text-xs text-slate-400 font-semibold bg-slate-100 px-2 py-0.5 rounded-full">33%</div>
+        </div>
+        <div class="h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div id="progressBar" class="h-full bg-primary rounded-full progress-bar" style="width:33%"></div>
+        </div>
+        <div class="flex items-center gap-2 mt-3">
+          <div class="flex items-center gap-1.5"><div id="c1" class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">1</div><span id="l1" class="text-xs font-semibold text-primary">Role</span></div>
+          <div class="flex-1 h-px bg-slate-300"></div>
+          <div class="flex items-center gap-1.5"><div id="c2" class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 text-xs font-bold">2</div><span id="l2" class="text-xs font-semibold text-slate-400">Info</span></div>
+          <div class="flex-1 h-px bg-slate-300"></div>
+          <div class="flex items-center gap-1.5"><div id="c3" class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 text-xs font-bold">3</div><span id="l3" class="text-xs font-semibold text-slate-400">Details</span></div>
+        </div>
+      </div>
+
+      <form method="post" action="{% url 'register' %}" id="regForm">
+        {% csrf_token %}
+
+        <!-- STEP 1: Role Selection -->
+        <div id="step1" class="step-section active fade-in">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-primary mb-4">Step 1 — Choose Your Role</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <label class="relative cursor-pointer">
+              <input checked class="peer sr-only" name="role" type="radio" value="farmer" onchange="onRoleChange()"/>
+              <div class="flex flex-col items-center gap-3 rounded-xl border-2 border-slate-200 bg-white p-5 transition-all hover:border-primary peer-checked:border-primary peer-checked:bg-primary/5">
+                <span class="material-symbols-outlined text-3xl text-slate-400 peer-checked:text-primary">potted_plant</span>
+                <div class="text-center"><p class="font-bold text-sm">Farmer</p><p class="text-[10px] text-slate-500 uppercase">Seller</p></div>
+              </div>
+            </label>
+            <label class="relative cursor-pointer">
+              <input class="peer sr-only" name="role" type="radio" value="buyer" onchange="onRoleChange()"/>
+              <div class="flex flex-col items-center gap-3 rounded-xl border-2 border-slate-200 bg-white p-5 transition-all hover:border-primary peer-checked:border-primary peer-checked:bg-primary/5">
+                <span class="material-symbols-outlined text-3xl text-slate-400 peer-checked:text-primary">shopping_basket</span>
+                <div class="text-center"><p class="font-bold text-sm">Buyer</p><p class="text-[10px] text-slate-500 uppercase">Purchaser</p></div>
+              </div>
+            </label>
+            <label class="relative cursor-pointer">
+              <input class="peer sr-only" name="role" type="radio" value="transporter" onchange="onRoleChange()"/>
+              <div class="flex flex-col items-center gap-3 rounded-xl border-2 border-slate-200 bg-white p-5 transition-all hover:border-primary peer-checked:border-primary peer-checked:bg-primary/5">
+                <span class="material-symbols-outlined text-3xl text-slate-400 peer-checked:text-primary">local_shipping</span>
+                <div class="text-center"><p class="font-bold text-sm">Transporter</p><p class="text-[10px] text-slate-500 uppercase">Logistics</p></div>
+              </div>
+            </label>
+          </div>
+          <div id="roleDesc" class="rounded-xl border border-primary/20 bg-primary/5 p-4 mb-6 flex items-start gap-3">
+            <span id="rdIcon" class="material-symbols-outlined text-primary text-xl mt-0.5">potted_plant</span>
+            <div>
+              <p class="font-bold text-sm text-slate-900" id="rdTitle">You are registering as a Farmer</p>
+              <p class="text-xs text-slate-500 mt-1" id="rdText">List your products, manage farms, accept orders and track revenue on the platform.</p>
+            </div>
+          </div>
+          <button type="button" onclick="goStep(2)" class="w-full bg-primary text-white py-3.5 rounded-xl font-bold text-sm hover:bg-primary/90 transition-all flex items-center justify-center gap-2">
+            Continue <span class="material-symbols-outlined text-sm">arrow_forward</span>
+          </button>
+        </div>
+
+        <!-- STEP 2: Account Info -->
+        <div id="step2" class="step-section">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-primary mb-4">Step 2 — Account Information</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold ml-1">Username <span class="text-red-400">*</span></label>
+              <input name="username" id="f_username" class="rounded-lg border-slate-200 focus:border-primary focus:ring-primary w-full px-4 py-2.5 text-sm border" placeholder="Choose a username" type="text" required/>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold ml-1">Email Address <span class="text-red-400">*</span></label>
+              <input name="email" id="f_email" class="rounded-lg border-slate-200 focus:border-primary focus:ring-primary w-full px-4 py-2.5 text-sm border" placeholder="example@mail.com" type="email"/>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold ml-1">Phone Number</label>
+              <input name="phone" id="f_phone" class="rounded-lg border-slate-200 focus:border-primary focus:ring-primary w-full px-4 py-2.5 text-sm border" placeholder="+213 5XX XX XX XX" type="tel"/>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold ml-1">Password <span class="text-red-400">*</span></label>
+              <input name="password1" id="f_pass" class="rounded-lg border-slate-200 focus:border-primary focus:ring-primary w-full px-4 py-2.5 text-sm border" placeholder="Min 8 characters" type="password" required minlength="8"/>
+            </div>
+            <div class="flex flex-col gap-1 md:col-span-2">
+              <label class="text-sm font-semibold ml-1">Confirm Password <span class="text-red-400">*</span></label>
+              <input name="password2" id="f_conf" class="rounded-lg border-slate-200 focus:border-primary focus:ring-primary w-full px-4 py-2.5 text-sm border" placeholder="Repeat password" type="password" required/>
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <button type="button" onclick="goStep(1)" class="flex-1 border-2 border-slate-200 text-slate-600 py-3 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-1">
+              <span class="material-symbols-outlined text-sm">arrow_back</span>Back
+            </button>
+            <button type="button" onclick="goStep(3)" class="flex-1 bg-primary text-white py-3 rounded-xl font-bold text-sm hover:bg-primary/90 transition-all flex items-center justify-center gap-1">
+              Continue<span class="material-symbols-outlined text-sm">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Submit -->
+        <div id="step3" class="step-section">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-primary mb-4" id="s3title">Step 3 — Confirm & Create</h3>
+
+          <!-- Summary card -->
+          <div id="summaryCard" class="rounded-xl border border-primary/20 bg-primary/5 p-5 mb-5">
+            <h4 class="font-bold text-sm text-slate-900 mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-primary text-sm">summarize</span>Registration Summary</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between"><span class="text-slate-500">Role</span><strong id="sum-role" class="text-slate-900">Farmer</strong></div>
+              <div class="flex justify-between"><span class="text-slate-500">Username</span><strong id="sum-username" class="text-slate-900">—</strong></div>
+              <div class="flex justify-between"><span class="text-slate-500">Email</span><strong id="sum-email" class="text-slate-900">—</strong></div>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3 mb-5 p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <input type="checkbox" id="terms" class="mt-0.5 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" required/>
+            <label for="terms" class="text-xs text-slate-600 cursor-pointer">
+              I agree to the <a href="#" class="text-primary font-semibold underline">Terms of Service</a> and <a href="#" class="text-primary font-semibold underline">Privacy Policy</a>. I confirm all information is accurate.
+            </label>
+          </div>
+
+          <div class="flex gap-3">
+            <button type="button" onclick="goStep(2)" class="flex-1 border-2 border-slate-200 text-slate-600 py-3 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-1">
+              <span class="material-symbols-outlined text-sm">arrow_back</span>Back
+            </button>
+            <button type="submit" id="submitBtn" class="flex-1 bg-primary text-white py-3 rounded-xl font-bold text-sm hover:bg-primary/90 transition-all flex items-center justify-center gap-1 shadow-lg shadow-primary/20">
+              <span class="material-symbols-outlined text-sm">check_circle</span>Create Account
+            </button>
+          </div>
+        </div>
+
+      </form>
+
+      <p class="text-center mt-4 text-slate-500 text-sm">Already have an account? <a class="text-primary font-semibold underline" href="{% url 'login' %}">Sign in here</a></p>
+      <p class="text-center mt-2 text-slate-400 text-xs">
+        <a href="{% url 'home' %}" class="hover:text-primary transition-colors inline-flex items-center justify-center gap-1">
+          <span class="material-symbols-outlined text-sm">home</span>Return to Home Page
+        </a>
+      </p>
+    </div>
+  </div>
+</main>
+
+<footer class="bg-white border-t border-primary/10 py-5 px-10 text-center text-xs text-slate-400">
+  © 2026 AgriGov Market. All rights reserved. A government-backed initiative for agricultural prosperity.
+</footer>
+
+<script>
+let cs = 1;
+const RC = {
+  farmer: { icon: 'potted_plant', title: 'Registering as a Farmer', desc: 'List products, manage farms, accept orders and track revenue.' },
+  buyer: { icon: 'shopping_basket', title: 'Registering as a Buyer', desc: 'Browse products, compare prices, place orders and track deliveries.' },
+  transporter: { icon: 'local_shipping', title: 'Registering as a Transporter', desc: 'Manage delivery missions, register your vehicle and serve as logistics partner.' }
+};
+function role() { return document.querySelector('input[name="role"]:checked')?.value || 'farmer'; }
+function onRoleChange() {
+  const r = RC[role()];
+  document.getElementById('rdIcon').textContent = r.icon;
+  document.getElementById('rdTitle').textContent = r.title;
+  document.getElementById('rdText').textContent = r.desc;
+}
+function goStep(n) {
+  if (n === 3 && cs === 2) {
+    const un = document.getElementById('f_username').value.trim();
+    const pa = document.getElementById('f_pass').value;
+    const co = document.getElementById('f_conf').value;
+    if (!un || !pa || !co) { alert('Please fill all required fields.'); return; }
+    if (pa !== co) { alert('Passwords do not match.'); return; }
+    if (pa.length < 8) { alert('Password must be at least 8 characters.'); return; }
+    // Update summary
+    document.getElementById('sum-role').textContent = role().charAt(0).toUpperCase() + role().slice(1);
+    document.getElementById('sum-username').textContent = un;
+    document.getElementById('sum-email').textContent = document.getElementById('f_email').value || '—';
+  }
+  document.getElementById('step' + cs).classList.remove('active');
+  cs = n;
+  const el = document.getElementById('step' + cs);
+  el.classList.add('active'); el.classList.remove('fade-in'); void el.offsetWidth; el.classList.add('fade-in');
+  const pct = cs === 1 ? 33 : cs === 2 ? 66 : 100;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('stepPct').textContent = pct + '%';
+  const labs = ['Choose Your Role', 'Account Information', 'Confirm & Create'];
+  document.getElementById('stepLabel').textContent = 'Step ' + cs + ' of 3 — ' + labs[cs - 1];
+  [1, 2, 3].forEach(i => {
+    const c = document.getElementById('c' + i), l = document.getElementById('l' + i);
+    if (i < cs) { c.className = 'w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold'; c.textContent = '✓'; l.className = 'text-xs font-semibold text-primary'; }
+    else if (i === cs) { c.className = 'w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold'; c.textContent = i; l.className = 'text-xs font-semibold text-primary'; }
+    else { c.className = 'w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 text-xs font-bold'; c.textContent = i; l.className = 'text-xs font-semibold text-slate-400'; }
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+onRoleChange();
+</script>
+</body>
+</html>

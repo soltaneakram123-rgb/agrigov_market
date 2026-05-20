@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Farmer Dashboard{% endblock %} | AgriGov</title>
+<style>
+{% block extra_style %}{% endblock %}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif;}
+body{display:flex;background:#f0f2f5;transition:0.3s;}
+.sidebar{width:240px;height:100vh;background:#1e4620;color:white;position:fixed;padding-top:25px;z-index:100;}
+.logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:30px;font-size:20px;font-weight:bold;}
+.logo img{width:40px;height:40px;border-radius:50%;border:2px solid white;}
+.sidebar ul{list-style:none;}
+.sidebar ul li a{display:block;padding:15px 25px;color:white;text-decoration:none;transition:0.3s;}
+.sidebar ul li a:hover,.sidebar ul li.active a{background:#2e8b42;}
+.main{margin-left:240px;width:100%;}
+.topbar{height:70px;background:white;display:flex;justify-content:space-between;align-items:center;padding:0 30px;box-shadow:0 2px 10px rgba(0,0,0,0.12);}
+.profile{display:flex;align-items:center;gap:10px;}
+.profile img{width:40px;height:40px;border-radius:50%;}
+.logout-form{display:inline;}
+.logout-btn{background:#ffb3b3;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px;}
+.logout-btn:hover{background:#ff8a8a;}
+.theme-btn{background:#eee;border:none;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:16px;}
+.header{background:linear-gradient(135deg,#2e8b42,#1e4620);color:white;padding:30px;margin:20px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;}
+.header-left p{opacity:0.85;margin-top:5px;}
+.stats-row{display:flex;gap:15px;margin:20px;flex-wrap:wrap;}
+.stat-card{flex:1;min-width:130px;background:white;padding:18px 20px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.06);border-left:4px solid #2e8b42;transition:0.3s;}
+.stat-card:hover{transform:translateY(-3px);}
+.stat-card h4{font-size:12px;color:#777;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.stat-card p{font-size:22px;font-weight:bold;color:#1e4620;}
+.stat-card.orange{border-left-color:#f0ad4e;}.stat-card.orange p{color:#856404;}
+.stat-card.blue{border-left-color:#42a5f5;}.stat-card.blue p{color:#1565c0;}
+.stat-card.purple{border-left-color:#ab47bc;}.stat-card.purple p{color:#6a1b9a;}
+.stat-card.red{border-left-color:#e57373;}.stat-card.red p{color:#b71c1c;}
+.controls{display:flex;gap:10px;margin:0 20px 15px 20px;flex-wrap:wrap;align-items:center;}
+.controls input,.controls select{padding:9px 14px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none;background:white;transition:0.3s;}
+.controls input{flex:1;min-width:200px;}
+.controls input:focus,.controls select:focus{border-color:#2e8b42;box-shadow:0 0 0 3px rgba(46,139,66,0.1);}
+.table-container{margin:20px;background:white;border-radius:12px;padding:20px;box-shadow:0 5px 15px rgba(0,0,0,0.08);}
+.table-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;}
+.table-header h3{color:#1e4620;font-size:15px;}
+table{width:100%;border-collapse:collapse;}
+th,td{padding:13px 14px;text-align:center;border-bottom:1px solid #f0f0f0;font-size:13px;}
+th{background:#f8f8f8;color:#1e4620;font-size:12px;text-transform:uppercase;}
+tr:hover td{background:#f5fbf6;}
+.btn{padding:6px 13px;border:none;border-radius:8px;cursor:pointer;font-size:12px;margin:2px;font-weight:600;transition:0.3s;}
+.btn-edit{background:#e3f2fd;color:#1565c0;}.btn-edit:hover{background:#1565c0;color:white;}
+.btn-delete{background:#ffcdd2;color:#b71c1c;}.btn-delete:hover{background:#e53935;color:white;}
+.btn-view{background:#e3f2fd;color:#1565c0;}.btn-view:hover{background:#1565c0;color:white;}
+.btn-accept{background:#c8e6c9;color:#2e7d32;}.btn-accept:hover{background:#2e8b42;color:white;}
+.btn-reject{background:#ffcdd2;color:#b71c1c;}.btn-reject:hover{background:#e53935;color:white;}
+.badge{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:bold;}
+.badge-pending{background:#fff3cd;color:#856404;}
+.badge-confirmed,.badge-accepted{background:#d4edda;color:#155724;}
+.badge-rejected{background:#f8d7da;color:#721c24;}
+.badge-transit{background:#e3f2fd;color:#1565c0;}
+.badge-delivered{background:#d4edda;color:#155724;}
+.no-result{text-align:center;padding:40px;color:#aaa;display:none;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;z-index:1000;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:white;padding:30px;border-radius:14px;width:460px;max-width:92%;box-shadow:0 10px 40px rgba(0,0,0,0.2);}
+.modal h3{color:#1e4620;margin-bottom:20px;}
+.modal-field{margin-bottom:14px;}
+.modal-field label{font-size:12px;color:#777;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;}
+.modal-field input,.modal-field select{width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none;transition:0.3s;font-family:inherit;}
+.modal-field input:focus,.modal-field select:focus{border-color:#2e8b42;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:8px;}
+.modal-save{background:#2e8b42;color:white;border:none;padding:9px 22px;border-radius:8px;cursor:pointer;font-weight:bold;}
+.modal-cancel,.modal-close{background:#eee;border:none;padding:9px 20px;border-radius:8px;cursor:pointer;}
+.modal-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;}
+.modal-row:last-of-type{border-bottom:none;}
+.modal-row span{color:#777;}.modal-row strong{color:#1e4620;}
+#toast{position:fixed;bottom:30px;right:30px;background:#1e4620;color:white;padding:14px 22px;border-radius:10px;font-size:14px;font-weight:bold;box-shadow:0 5px 20px rgba(0,0,0,0.2);display:none;z-index:999;}
+.add-btn,.export-btn{background:white;color:#1e4620;border:none;padding:10px 20px;border-radius:8px;font-weight:bold;cursor:pointer;transition:0.3s;font-size:14px;text-decoration:none;display:inline-block;}
+.add-btn:hover,.export-btn:hover{background:#e8f5e9;}
+/* Dark mode */
+.dark{background:#121212;}
+.dark .topbar,.dark .table-container,.dark .stat-card,.dark .modal{background:#1e1e1e;color:white;}
+.dark .sidebar{background:#111;}
+.dark th{background:#2a2a2a;color:#88d982;}
+.dark td{border-bottom-color:#2a2a2a;color:#ddd;}
+.dark tr:hover td{background:#1a2e1f;}
+.dark .controls input,.dark .controls select{background:#2a2a2a;color:white;border-color:#333;}
+.dark .stat-card h4{color:#aaa;}.dark .stat-card p{color:#88d982;}
+.dark .modal-field label{color:#aaa;}
+.dark .modal-field input,.dark .modal-field select{background:#2a2a2a;color:white;border-color:#333;}
+.dark .modal-cancel,.dark .modal-close{background:#333;color:#ccc;}
+.dark .modal-row{border-bottom-color:#2a2a2a;}
+.dark .modal-row span{color:#aaa;}.dark .modal-row strong{color:#88d982;}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">
+    <img src="https://cdn-icons-png.flaticon.com/512/2/2036.png" alt="logo">
+    <span>AgriGov</span>
+  </div>
+  <ul>
+    <li {% if active_page == 'farm' %}class="active"{% endif %}><a href="{% url 'my_farm' %}">🌾 My Farm</a></li>
+    <li {% if active_page == 'products' %}class="active"{% endif %}><a href="{% url 'farmer_dashboard' %}">🌽 My Products</a></li>
+    <li {% if active_page == 'orders' %}class="active"{% endif %}>
+      <a href="{% url 'manage_orders' %}" style="position:relative;">
+        📦 Manage Orders
+        {% if new_orders_count %}
+        <span style="position:absolute;top:-6px;right:-14px;background:#e53935;color:white;border-radius:50%;font-size:10px;font-weight:700;width:17px;height:17px;line-height:17px;text-align:center;display:inline-block;">{{ new_orders_count }}</span>
+        {% endif %}
+      </a>
+    </li>
+    <li {% if active_page == 'sales' %}class="active"{% endif %}><a href="{% url 'sales_tracking' %}">📊 Sales Tracking</a></li>
+    <li {% if active_page == 'notifications' %}class="active"{% endif %}><a href="{% url 'farmer_notifications' %}">🔔 Notifications</a></li>
+    <li {% if active_page == 'profile' %}class="active"{% endif %}><a href="{% url 'farmer_profile' %}">👤 Profile</a></li>
+    <li {% if active_page == 'equipment' %}class="active"{% endif %}>
+      <a href="{% url 'farmer_equipment' %}" style="position:relative;">
+        🚜Agricultural machinery
+        {% if equipment_requests_count %}
+        <span style="position:absolute;top:-6px;right:-14px;background:#e53935;color:white;border-radius:50%;font-size:10px;font-weight:700;width:17px;height:17px;line-height:17px;text-align:center;display:inline-block;">{{ equipment_requests_count }}</span>
+        {% endif %}
+      </a>
+    </li>
+    <li {% if active_page == 'complaints' %}class="active"{% endif %}><a href="{% url 'my_complaints' %}">⚠️ Complaints</a></li>
+    <li {% if active_page == 'messages' %}class="active"{% endif %}><a href="{% url 'chat_list' %}">💬 Messages</a></li>
+  </ul>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h3>{% block topbar_title %}🌱 Farmer Dashboard{% endblock %}</h3>
+    <div class="profile">
+      <button id="themeToggle" class="theme-btn">🌙</button>
+      <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="avatar">
+      <span>{{ user.username }}</span>
+      <form method="post" action="{% url 'logout' %}" class="logout-form">
+        {% csrf_token %}
+        <button type="submit" class="logout-btn">🚪 Logout</button>
+      </form>
+    </div>
+  </div>
+
+  {% if messages %}
+  <div style="margin:10px 20px 0 20px;">
+    {% for message in messages %}
+    <div style="background:{% if 'error' in message.tags %}#f8d7da;color:#721c24{% else %}#d4edda;color:#155724{% endif %};padding:12px 18px;border-radius:8px;margin-bottom:8px;font-size:13px;">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+</div>
+
+<div id="toast"></div>
+
+<script>
+const toggleBtn = document.getElementById("themeToggle");
+toggleBtn.onclick = function() {
+  document.body.classList.toggle("dark");
+  toggleBtn.textContent = document.body.classList.contains("dark") ? "☀" : "🌙";
+  localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
+};
+if (localStorage.getItem("theme") === "dark") { document.body.classList.add("dark"); toggleBtn.textContent = "☀"; }
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.style.display = "block";
+  setTimeout(() => { t.style.display = "none"; }, 3000);
+}
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

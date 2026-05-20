@@ -1,0 +1,132 @@
+{% extends 'transporter_base.html' %}
+{% block title %}Transporter Profile{% endblock %}
+{% block topbar_title %}👤 Transporter Profile{% endblock %}
+
+{% block extra_style %}
+.profile-container{margin:20px;display:flex;gap:20px;flex-wrap:wrap;}
+.profile-card{flex:1;min-width:260px;background:white;padding:25px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.08);text-align:center;}
+.profile-card img{width:100px;height:100px;border-radius:50%;margin-bottom:15px;border:4px solid #2e8b42;object-fit:cover;}
+.profile-card h2{color:#1e4620;margin-bottom:4px;}
+.role-badge-card{background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:bold;padding:4px 14px;border-radius:20px;display:inline-block;margin-bottom:15px;}
+.edit-btn{padding:8px 18px;border:none;background:#2e8b42;color:white;border-radius:8px;cursor:pointer;transition:0.3s;font-size:13px;}
+.edit-btn:hover{background:#256f35;}
+.stats{display:flex;gap:10px;margin-top:18px;}
+.stat-box{flex:1;background:#f8f8f8;padding:12px;border-radius:10px;text-align:center;}
+.stat-box h3{color:#2e8b42;font-size:18px;}
+.stat-box p{font-size:12px;color:#777;margin-top:3px;}
+.info-card{flex:2;min-width:300px;background:white;padding:25px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.08);}
+.info-card h3{color:#1e4620;margin-bottom:15px;font-size:15px;}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #f0f0f0;}
+.info-row:last-child{border-bottom:none;}
+.info-row span{color:#666;font-size:14px;}
+.info-row strong{color:#1e4620;font-size:14px;}
+.bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px;}
+.card{background:white;padding:22px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.08);}
+.card h3{color:#1e4620;margin-bottom:15px;font-size:15px;}
+.mission-row{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;background:#f8f8f8;margin-bottom:6px;}
+.area-tag{background:#e8f5e9;color:#1e4620;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:bold;display:inline-block;margin:3px;}
+.setting-item{display:flex;justify-content:space-between;align-items:center;padding:12px;margin-bottom:8px;border-radius:8px;background:#f8f8f8;cursor:pointer;transition:0.3s;}
+.setting-item:hover{background:#e8f5e9;}
+.setting-item span{font-size:13px;}
+.dark .profile-card,.dark .info-card,.dark .card{background:#1e1e1e;}
+.dark .profile-card h2,.dark .info-card h3,.dark .card h3{color:#88d982;}
+.dark .info-row span{color:#aaa;}.dark .info-row strong{color:#88d982;}
+.dark .mission-row{background:#2a2a2a;color:#ddd;}
+.dark .stat-box{background:#2a2a2a;}.dark .stat-box p{color:#aaa;}
+.dark .setting-item{background:#2a2a2a;color:#ddd;}.dark .setting-item:hover{background:#1a3320;}
+{% endblock %}
+
+{% block content %}
+<div class="header">
+  <h1>My Profile</h1>
+  <p>Manage your transport account and missions</p>
+</div>
+
+<div class="profile-container">
+  <div class="profile-card">
+    <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Profile">
+    <h2>{{ user.get_full_name|default:user.username }}</h2>
+    <div class="role-badge-card">🚛 Verified Transporter</div><br>
+    <button class="edit-btn" onclick="document.getElementById('editModal').classList.add('open')">✏ Edit Profile</button>
+    <div class="stats">
+      <div class="stat-box"><h3>{{ total_missions }}</h3><p>Missions</p></div>
+      <div class="stat-box"><h3>{{ delivered_count }}</h3><p>Delivered</p></div>
+      <div class="stat-box"><h3>{{ progress_count }}</h3><p>Active</p></div>
+    </div>
+  </div>
+  <div class="info-card">
+    <h3>📋 Personal Information</h3>
+    <div class="info-row"><span>Username</span><strong>{{ user.username }}</strong></div>
+    <div class="info-row"><span>Email</span><strong>{{ user.email|default:"—" }}</strong></div>
+    <div class="info-row"><span>Phone</span><strong>{{ user.phone|default:"—" }}</strong></div>
+    <div class="info-row"><span>Role</span><strong>{{ user.get_role_display }}</strong></div>
+    {% if profile %}
+    <div class="info-row"><span>Vehicle Type</span><strong>{{ profile.vehicle_type }}</strong></div>
+    <div class="info-row"><span>Capacity</span><strong>{{ profile.capacity_kg }} Kg</strong></div>
+    <div class="info-row"><span>Service Areas</span><strong>{{ profile.service_areas }}</strong></div>
+    <div class="info-row"><span>Availability</span><strong>{% if profile.is_available %}✅ Available{% else %}🔴 Unavailable{% endif %}</strong></div>
+    {% endif %}
+    <div class="info-row"><span>Member Since</span><strong>{{ user.date_joined|date:"d M Y" }}</strong></div>
+    <div class="info-row"><span>Account Status</span><strong style="color:#2e8b42;">✅ Active</strong></div>
+  </div>
+</div>
+
+<div class="bottom-grid">
+  <div class="card">
+    <h3>📦 Recent Missions</h3>
+    {% for d in recent_missions %}
+    <div class="mission-row">
+      <span>#MSN-{{ d.id }} · {% for item in d.order.items.all %}{{ item.product.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+      {% if d.status == 'delivered' %}<span class="badge b-done">✅ Delivered</span>
+      {% elif d.status == 'in_transit' %}<span class="badge b-transit">🚚 Transit</span>
+      {% else %}<span class="badge b-pending">⏳ Pending</span>{% endif %}
+    </div>
+    {% empty %}
+    <p style="color:#aaa;font-size:13px;text-align:center;padding:20px;">No missions yet.</p>
+    {% endfor %}
+    <div style="margin-top:12px;"><a href="{% url 'transporter_dashboard' %}" style="display:block;text-align:center;background:#2e8b42;color:white;padding:8px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:bold;">📋 View All Missions</a></div>
+  </div>
+  <div class="card">
+    <h3>📍 Service Areas</h3>
+    {% if profile and profile.service_areas %}
+      {% for area in profile.service_areas.split %}
+      <span class="area-tag">{{ area }}</span>
+      {% endfor %}
+    {% else %}
+      <p style="color:#aaa;font-size:13px;">No service areas defined. <a href="{% url 'transporter_areas' %}" style="color:#2e8b42;">Add areas →</a></p>
+    {% endif %}
+    <div style="margin-top:15px;"><a href="{% url 'transporter_areas' %}" style="background:#2e8b42;color:white;padding:8px 16px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:bold;display:inline-block;">✏ Manage Areas</a></div>
+  </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <h3>✏ Edit Profile</h3>
+    <form method="post" action="{% url 'transporter_profile' %}">
+      {% csrf_token %}
+      <div class="two-col">
+        <div class="modal-field"><label>Email</label><input type="email" name="email" value="{{ user.email }}"></div>
+        <div class="modal-field"><label>Phone</label><input type="text" name="phone" value="{{ user.phone }}"></div>
+      </div>
+      {% if profile %}
+      <div class="two-col">
+        <div class="modal-field"><label>Vehicle Type</label><input type="text" name="vehicle_type" value="{{ profile.vehicle_type }}"></div>
+        <div class="modal-field"><label>Capacity (Kg)</label><input type="number" name="capacity_kg" value="{{ profile.capacity_kg }}"></div>
+      </div>
+      <div class="modal-field"><label>Service Areas (comma-separated)</label><input type="text" name="service_areas" value="{{ profile.service_areas }}"></div>
+      <div class="modal-field"><label>Availability</label>
+        <select name="is_available">
+          <option value="true" {% if profile.is_available %}selected{% endif %}>✅ Available</option>
+          <option value="false" {% if not profile.is_available %}selected{% endif %}>🔴 Unavailable</option>
+        </select>
+      </div>
+      {% endif %}
+      <div class="modal-actions">
+        <button type="button" class="modal-cancel" onclick="closeModals()">Cancel</button>
+        <button type="submit" class="modal-save">💾 Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

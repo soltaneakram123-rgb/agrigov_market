@@ -1,0 +1,322 @@
+{% extends 'ministry/ministry_base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block topbar_title %}📊 Ministry Dashboard{% endblock %}
+
+{% block extra_style %}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;}
+.charts-row2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.chart-card{background:white;border-radius:14px;padding:18px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);}
+.chart-card h3{font-size:13px;color:#1e4620;margin:0 0 14px;font-weight:700;letter-spacing:.2px;}
+.donut-wrap{position:relative;width:100px;height:100px;flex-shrink:0;margin:0 auto;}
+.donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;}
+.donut-center .big{font-size:14px;font-weight:800;color:#1e4620;line-height:1;}
+.donut-center .sm{font-size:9px;color:#888;margin-top:2px;}
+.legend{display:flex;flex-direction:column;gap:6px;margin-left:14px;flex:1;justify-content:center;}
+.leg-item{display:flex;align-items:center;gap:7px;font-size:11px;color:#555;padding:2px 0;}
+.leg-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+.leg-val{font-weight:700;color:#1e4620;margin-left:auto;font-size:11px;background:#f0f7f1;padding:1px 7px;border-radius:10px;}
+@media(max-width:1000px){.charts-grid{grid-template-columns:1fr 1fr;}.charts-row2{grid-template-columns:1fr;}}
+@media(max-width:650px){.charts-grid{grid-template-columns:1fr;}}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1>Ministry of Agriculture – Control Panel</h1><p>Platform statistics and market overview</p></div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><h4>Total Users</h4><p>{{ total_users }}</p><div class="sub">All accounts</div></div>
+  <div class="stat-card orange"><h4>Farmers</h4><p>{{ total_farmers }}</p></div>
+  <div class="stat-card blue"><h4>Buyers</h4><p>{{ total_buyers }}</p></div>
+  <div class="stat-card purple"><h4>Total Farms</h4><p>{{ total_farms }}</p></div>
+</div>
+<div class="stats-row">
+  <div class="stat-card"><h4>Total Orders</h4><p>{{ total_orders }}</p><div class="sub">{{ orders_pending }} pending</div></div>
+  <div class="stat-card teal"><h4>Revenue (Delivered)</h4><p>{{ total_revenue|floatformat:0 }} DA</p></div>
+  <div class="stat-card orange"><h4>Products Listed</h4><p>{{ total_products }}</p></div>
+  <div class="stat-card red"><h4>Open Complaints</h4><p>{{ open_complaints }}</p></div>
+</div>
+
+{% if pending_approvals > 0 %}
+<div style="background:#fff3e0;border:2px solid #f0ad4e;border-radius:14px;padding:18px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px;">
+  <span style="font-size:34px;">⏳</span>
+  <div style="flex:1;">
+    <div style="font-size:16px;font-weight:700;color:#e65100;">{{ pending_approvals }} user(s) waiting for account approval</div>
+    <div style="font-size:13px;color:#888;margin-top:3px;">These users registered but cannot login until you approve them.</div>
+  </div>
+  <a href="{% url 'ministry_users' %}?approval=pending" class="btn btn-warn" style="white-space:nowrap;font-size:14px;padding:10px 20px;">Review Now →</a>
+</div>
+{% endif %}
+
+<!-- ══════════ CHARTS GRID ══════════ -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">
+
+  <!-- Donut 1: Orders -->
+  <div class="chart-card" style="display:flex;flex-direction:column;align-items:center;padding:20px;text-align:center;">
+    <h3 style="margin-bottom:14px;width:100%;text-align:center;">📦 Orders by Status</h3>
+    <div style="position:relative;width:280px;height:280px;">
+      <canvas id="ordersDonut" width="280" height="280"></canvas>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;">
+        <div style="font-size:20px;font-weight:800;color:#1e4620;">{{ total_orders }}</div>
+      </div>
+    </div>
+    <div style="margin-top:8px;font-size:13px;color:#555;font-weight:600;">Total : {{ total_orders }}</div>
+    <div style="width:100%;margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:5px 6px;">
+      <div class="leg-item"><div class="leg-dot" style="background:#f59e0b;"></div>Pending <span class="leg-val">{{ orders_pending }}</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#3b82f6;"></div>Confirmed <span class="leg-val">{{ orders_confirmed }}</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#8b5cf6;"></div>In Transit <span class="leg-val">{{ orders_transit }}</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#10b981;"></div>Delivered <span class="leg-val">{{ orders_delivered }}</span></div>
+      <div class="leg-item" style="grid-column:span 2;"><div class="leg-dot" style="background:#ef4444;"></div>Cancelled <span class="leg-val">{{ orders_cancelled }}</span></div>
+    </div>
+  </div>
+
+  <!-- Donut 2: Users -->
+  <div class="chart-card" style="display:flex;flex-direction:column;align-items:center;padding:20px;text-align:center;">
+    <h3 style="margin-bottom:14px;width:100%;text-align:center;">👥 Users by Role</h3>
+    <div style="position:relative;width:280px;height:280px;">
+      <canvas id="usersDonut" width="280" height="280"></canvas>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;">
+        <div style="font-size:20px;font-weight:800;color:#1e4620;">{{ total_users }}</div>
+      </div>
+    </div>
+    <div style="margin-top:8px;font-size:13px;color:#555;font-weight:600;">Total : {{ total_users }}</div>
+    <div style="width:100%;margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:5px 6px;">
+      <div class="leg-item"><div class="leg-dot" style="background:#2e8b42;"></div>Farmers <span class="leg-val">{{ total_farmers }}</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#3b82f6;"></div>Buyers <span class="leg-val">{{ total_buyers }}</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#f59e0b;"></div>Transport. <span class="leg-val">{{ total_transporters }}</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#8b5cf6;"></div>Ministry <span class="leg-val">{{ total_ministry }}</span></div>
+    </div>
+  </div>
+
+  <!-- Donut 3: Products -->
+  <div class="chart-card" style="display:flex;flex-direction:column;align-items:center;padding:20px;text-align:center;">
+    <h3 style="margin-bottom:14px;width:100%;text-align:center;">🌿 Product Availability</h3>
+    <div style="position:relative;width:280px;height:280px;">
+      <canvas id="productsDonut" width="280" height="280"></canvas>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;">
+        <div style="font-size:20px;font-weight:800;color:#1e4620;">{{ total_products }}</div>
+      </div>
+    </div>
+    <div style="margin-top:8px;font-size:13px;color:#555;font-weight:600;">Total : {{ total_products }}</div>
+    <div style="width:100%;margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:5px 6px;">
+      <div class="leg-item"><div class="leg-dot" style="background:#10b981;"></div>Available <span class="leg-val">{{ products_available }}</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#d1d5db;border:1px solid #bbb;"></div>Unavailable <span class="leg-val">{{ products_unavailable }}</span></div>
+    </div>
+  </div>
+
+  <!-- Bar: Products per Category -->
+  <div class="chart-card" style="grid-column:span 2;">
+    <h3>📊 Products per Category</h3>
+    <div style="height:190px;"><canvas id="categoryBar"></canvas></div>
+  </div>
+
+  <!-- Bar: Orders horizontal -->
+  <div class="chart-card">
+    <h3>📈 Orders Volume</h3>
+    <div style="height:190px;"><canvas id="ordersBar"></canvas></div>
+  </div>
+
+</div>
+<!-- Quick Navigation -->
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:15px;margin-bottom:20px;">
+  <a href="{% url 'ministry_users' %}" style="text-decoration:none;">
+    <div class="table-card" style="padding:20px;text-align:center;cursor:pointer;transition:0.3s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+      <div style="font-size:32px;margin-bottom:8px;">👥</div><div style="font-weight:700;color:#1e4620;">Manage Users</div>
+    </div>
+  </a>
+  <a href="{% url 'ministry_orders' %}" style="text-decoration:none;">
+    <div class="table-card" style="padding:20px;text-align:center;cursor:pointer;transition:0.3s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+      <div style="font-size:32px;margin-bottom:8px;">📦</div><div style="font-weight:700;color:#1e4620;">Manage Orders</div>
+    </div>
+  </a>
+  <a href="{% url 'ministry_catalogue' %}" style="text-decoration:none;">
+    <div class="table-card" style="padding:20px;text-align:center;cursor:pointer;transition:0.3s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+      <div style="font-size:32px;margin-bottom:8px;">📋</div><div style="font-weight:700;color:#1e4620;">Product Catalogue</div>
+    </div>
+  </a>
+  <a href="{% url 'ministry_categories' %}" style="text-decoration:none;">
+    <div class="table-card" style="padding:20px;text-align:center;cursor:pointer;transition:0.3s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+      <div style="font-size:32px;margin-bottom:8px;">🌾</div><div style="font-weight:700;color:#1e4620;">Categories</div>
+    </div>
+  </a>
+  <a href="{% url 'ministry_prices' %}" style="text-decoration:none;">
+    <div class="table-card" style="padding:20px;text-align:center;cursor:pointer;transition:0.3s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+      <div style="font-size:32px;margin-bottom:8px;">💰</div><div style="font-weight:700;color:#1e4620;">Market Prices</div>
+    </div>
+  </a>
+  <a href="{% url 'ministry_complaints' %}" style="text-decoration:none;">
+    <div class="table-card" style="padding:20px;text-align:center;cursor:pointer;transition:0.3s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+      <div style="font-size:32px;margin-bottom:8px;">⚠️</div><div style="font-weight:700;color:#1e4620;">Complaints</div>
+    </div>
+  </a>
+  <a href="{% url 'ministry_equipment' %}" style="text-decoration:none;">
+    <div class="table-card" style="padding:20px;text-align:center;cursor:pointer;transition:0.3s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+      <div style="font-size:32px;margin-bottom:8px;">🚜</div><div style="font-weight:700;color:#1e4620;">الآلات الفلاحية</div>
+    </div>
+  </a>
+</div>
+
+<!-- Recent Orders -->
+<div class="table-card" style="margin-bottom:20px;">
+  <div class="table-card-header">
+    <h3>📦 Recent Orders</h3>
+    <a href="{% url 'ministry_orders' %}" style="font-size:13px;color:#2e8b42;">View all →</a>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>ID</th><th>Buyer</th><th>Farmer</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+      <tbody>
+        {% for order in recent_orders %}
+        <tr>
+          <td><strong>#{{ order.id }}</strong></td>
+          <td>{{ order.buyer.username }}</td>
+          <td>{{ order.farmer.username }}</td>
+          <td><strong>{{ order.total_amount|floatformat:2 }} DA</strong></td>
+          <td>
+            {% if order.status == 'delivered' %}<span class="badge badge-green">✓ Delivered</span>
+            {% elif order.status == 'pending' %}<span class="badge badge-orange">⏳ Pending</span>
+            {% elif order.status == 'in_transit' %}<span class="badge badge-blue">🚚 In Transit</span>
+            {% elif order.status == 'cancelled' %}<span class="badge badge-red">✗ Cancelled</span>
+            {% else %}<span class="badge badge-grey">{{ order.status }}</span>{% endif %}
+          </td>
+          <td>{{ order.created_at|date:"d M Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align:center;color:#aaa;padding:30px;">No orders yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Official Prices -->
+<div class="table-card">
+  <div class="table-card-header">
+    <h3>💰 Official Market Prices</h3>
+    <a href="{% url 'ministry_prices' %}" style="font-size:13px;color:#2e8b42;">Manage →</a>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Category</th><th>Price/kg</th><th>Valid From</th><th>Valid To</th></tr></thead>
+      <tbody>
+        {% for p in official_prices %}
+        <tr>
+          <td>{{ p.category.name }}</td>
+          <td><strong>{{ p.price_per_kg }} DA/kg</strong></td>
+          <td>{{ p.valid_from }}</td>
+          <td>{{ p.valid_to }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" style="text-align:center;color:#aaa;padding:30px;">No official prices set.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+Chart.defaults.font.family = "'Segoe UI', sans-serif";
+
+function makeDonut(id, labels, data, colors) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  const filtered = labels.map((l,i) => ({l, d: data[i], c: colors[i]})).filter(x => x.d > 0);
+  if (!filtered.length) filtered.push({l:'No data', d:1, c:'#e5e7eb'});
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: filtered.map(x => x.l),
+      datasets: [{
+        data: filtered.map(x => x.d),
+        backgroundColor: filtered.map(x => x.c),
+        borderWidth: 3, borderColor: '#fff', hoverOffset: 8,
+      }]
+    },
+    options: {
+      cutout: '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: c => {
+              const total = c.dataset.data.reduce((a,b) => a+b, 0);
+              return ` ${c.label}: ${c.parsed} (${Math.round(c.parsed/total*100)}%)`;
+            }
+          }
+        }
+      },
+      animation: { animateRotate: true, duration: 900 }
+    }
+  });
+}
+
+makeDonut('ordersDonut',
+  ['Pending','Confirmed','In Transit','Delivered','Cancelled'],
+  [{{ orders_pending }}, {{ orders_confirmed }}, {{ orders_transit }}, {{ orders_delivered }}, {{ orders_cancelled }}],
+  ['#f59e0b','#3b82f6','#8b5cf6','#10b981','#ef4444']
+);
+
+makeDonut('usersDonut',
+  ['Farmers','Buyers','Transporters','Ministry'],
+  [{{ total_farmers }}, {{ total_buyers }}, {{ total_transporters }}, {{ total_ministry }}],
+  ['#2e8b42','#3b82f6','#f59e0b','#8b5cf6']
+);
+
+makeDonut('productsDonut',
+  ['Available','Unavailable'],
+  [{{ products_available }}, {{ products_unavailable }}],
+  ['#10b981','#e5e7eb']
+);
+
+(function() {
+  const stats = {{ category_stats|safe }};
+  const palette = ['#2e8b42','#3b82f6','#f59e0b','#8b5cf6','#10b981','#ef4444','#f97316'];
+  new Chart(document.getElementById('categoryBar'), {
+    type: 'bar',
+    data: {
+      labels: stats.map(c => c.name),
+      datasets: [{
+        data: stats.map(c => c.cnt),
+        backgroundColor: stats.map((_,i) => palette[i % palette.length] + 'cc'),
+        borderColor:     stats.map((_,i) => palette[i % palette.length]),
+        borderWidth: 2, borderRadius: 8, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.parsed.y} products` } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { precision: 0, font: { size: 11 } } }
+      },
+      animation: { duration: 800 }
+    }
+  });
+})();
+
+new Chart(document.getElementById('ordersBar'), {
+  type: 'bar',
+  data: {
+    labels: ['Pending','Confirmed','In Transit','Delivered','Cancelled'],
+    datasets: [{
+      data: [{{ orders_pending }}, {{ orders_confirmed }}, {{ orders_transit }}, {{ orders_delivered }}, {{ orders_cancelled }}],
+      backgroundColor: ['#f59e0bcc','#3b82f6cc','#8b5cf6cc','#10b981cc','#ef4444cc'],
+      borderColor:     ['#f59e0b','#3b82f6','#8b5cf6','#10b981','#ef4444'],
+      borderWidth: 2, borderRadius: 8, borderSkipped: false,
+    }]
+  },
+  options: {
+    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.parsed.x} orders` } } },
+    scales: {
+      x: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { precision: 0, font: { size: 11 } } },
+      y: { grid: { display: false }, ticks: { font: { size: 12, weight: '600' } } }
+    },
+    animation: { duration: 800 }
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends 'transporter_base.html' %}
+{% block title %}Messages{% endblock %}
+{% block topbar_title %}💬 Messages{% endblock %}
+{% block extra_style %}
+.chat-container{display:flex;height:calc(100vh - 70px);margin:0;}
+.chat-list{width:280px;border-right:1px solid #f0f0f0;background:white;flex-shrink:0;overflow-y:auto;}
+.chat-list-header{padding:18px 20px;font-weight:bold;color:#1e4620;border-bottom:1px solid #f0f0f0;font-size:15px;}
+.chat-search input{width:100%;padding:12px 16px;border:none;border-bottom:1px solid #f0f0f0;outline:none;font-size:13px;}
+.chat-user{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;transition:0.2s;border-bottom:1px solid #f5f5f5;position:relative;}
+.chat-user:hover{background:#f5fbf6;}.chat-user.active{background:#e8f5e9;}
+.chat-user img{width:42px;height:42px;border-radius:50%;flex-shrink:0;}
+.chat-user-info{flex:1;min-width:0;}
+.chat-user-info b{display:block;font-size:14px;color:#1e4620;}
+.chat-user-info small{font-size:12px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;}
+.role-tag{font-size:10px;font-weight:bold;padding:2px 8px;border-radius:10px;display:inline-block;margin-top:3px;}
+.role-farmer{background:#e8f5e9;color:#2e7d32;}
+.role-buyer{background:#e3f2fd;color:#1565c0;}
+.role-admin{background:#f3e5f5;color:#6a1b9a;}
+.unread-dot{width:9px;height:9px;background:#2e8b42;border-radius:50%;flex-shrink:0;}
+.chat-time{font-size:11px;color:#aaa;flex-shrink:0;}
+.chat-window{flex:1;display:flex;flex-direction:column;background:#f0f2f5;}
+.chat-header{background:white;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+.chat-header-left{display:flex;align-items:center;gap:12px;}
+.chat-header img{width:42px;height:42px;border-radius:50%;}
+.chat-header-info h4{color:#1e4620;font-size:15px;margin-bottom:2px;}
+.online{font-size:12px;color:#2e8b42;}
+.header-role-badge{font-size:11px;font-weight:bold;padding:2px 10px;border-radius:20px;display:inline-block;margin-top:3px;}
+.header-actions{display:flex;gap:8px;}
+.action-btn{background:#e8f5e9;color:#2e7d32;border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;}
+.messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;}
+.message{max-width:70%;padding:11px 15px;border-radius:12px;font-size:13px;line-height:1.5;position:relative;}
+.message.received{background:white;color:#333;align-self:flex-start;border-radius:0 12px 12px 12px;box-shadow:0 2px 8px rgba(0,0,0,0.07);}
+.message.sent{background:#2e8b42;color:white;align-self:flex-end;border-radius:12px 0 12px 12px;}
+.msg-time{font-size:10px;opacity:0.7;margin-left:8px;}
+.date-divider{text-align:center;font-size:12px;color:#aaa;margin:8px 0;}
+.chat-input{background:white;padding:14px 20px;display:flex;gap:10px;align-items:center;box-shadow:0 -2px 8px rgba(0,0,0,0.06);}
+.chat-input input{flex:1;padding:10px 16px;border:1px solid #ddd;border-radius:20px;outline:none;font-size:14px;}
+.chat-input input:focus{border-color:#2e8b42;}
+.send-btn{background:#2e8b42;color:white;border:none;padding:10px 18px;border-radius:20px;cursor:pointer;font-weight:bold;}
+.emoji-btn{background:none;border:none;font-size:20px;cursor:pointer;}
+.dark .chat-list,.dark .chat-window,.dark .chat-header{background:#1e1e1e;}
+.dark .chat-user{border-bottom-color:#2a2a2a;}
+.dark .chat-user.active{background:#1a3320;}
+.dark .chat-user:hover{background:#2a2a2a;}
+.dark .chat-user-info b{color:#88d982;}
+.dark .chat-list-header{color:#88d982;border-bottom-color:#2a2a2a;}
+.dark .message.received{background:#2a2a2a;color:#ddd;}
+.dark .chat-input{background:#1e1e1e;box-shadow:none;border-top:1px solid #2a2a2a;}
+.dark .chat-input input{background:#2a2a2a;color:white;border-color:#333;}
+.dark .chat-header{border-bottom:1px solid #2a2a2a;}
+{% endblock %}
+{% block content %}
+<div class="chat-container">
+  <div class="chat-list">
+    <div class="chat-list-header">💬 Conversations</div>
+    <div class="chat-search"><input type="text" id="chatSearch" placeholder="🔍 Search..."></div>
+    <div class="chat-user active" onclick="switchChat(this,'Farmer Contact','Farmer')">
+      <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
+      <div class="chat-user-info"><b>Farmer Contact</b><small>Ready for pickup</small><span class="role-tag role-farmer">🌾 Farmer</span></div>
+      <div class="unread-dot"></div>
+      <span class="chat-time">Now</span>
+    </div>
+    <div class="chat-user" onclick="switchChat(this,'Buyer Contact','Buyer')">
+      <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
+      <div class="chat-user-info"><b>Buyer Contact</b><small>Confirm delivery time</small><span class="role-tag role-buyer">🛒 Buyer</span></div>
+      <span class="chat-time">09:15</span>
+    </div>
+    <div class="chat-user" onclick="switchChat(this,'Ministry Admin','Admin')">
+      <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
+      <div class="chat-user-info"><b>Ministry Admin</b><small>Price update notice</small><span class="role-tag role-admin">⚙ Admin</span></div>
+      <span class="chat-time">Apr 15</span>
+    </div>
+  </div>
+  <div class="chat-window">
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" id="chatAvatar">
+        <div class="chat-header-info">
+          <h4 id="chatName">Farmer Contact</h4>
+          <span class="online">🟢 Online</span><br>
+          <span class="header-role-badge role-farmer" id="chatRoleBadge">🌾 Farmer</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="action-btn" onclick="showToast('📞 Calling...')">📞 Call</button>
+        <a href="{% url 'transporter_dashboard' %}" class="action-btn" style="text-decoration:none;">📋 Missions</a>
+      </div>
+    </div>
+    <div class="messages" id="messages">
+      <div class="date-divider">— Today —</div>
+      <div class="message received">Hello, are you coming to pick up the shipment?<span class="msg-time">10:20</span></div>
+      <div class="message sent">Yes, I will arrive in 30 minutes.<span class="msg-time">10:22</span></div>
+      <div class="message received">Great, the shipment is ready and labelled.<span class="msg-time">10:25</span></div>
+    </div>
+    <div class="chat-input">
+      <button class="emoji-btn">😊</button>
+      <input type="text" id="msgInput" placeholder="Type your message..." onkeydown="if(event.key==='Enter')sendMessage()">
+      <button class="send-btn" onclick="sendMessage()">Send ➤</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const roleBadge = {Farmer:'role-farmer',Buyer:'role-buyer',Admin:'role-admin'};
+const roleEmoji = {Farmer:'🌾 Farmer',Buyer:'🛒 Buyer',Admin:'⚙ Admin'};
+function switchChat(el, name, role) {
+  document.querySelectorAll('.chat-user').forEach(u => u.classList.remove('active'));
+  el.classList.add('active');
+  el.querySelector('.unread-dot')?.remove();
+  document.getElementById('chatName').textContent = name;
+  const badge = document.getElementById('chatRoleBadge');
+  badge.className = 'header-role-badge ' + (roleBadge[role] || 'role-buyer');
+  badge.textContent = roleEmoji[role] || role;
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = '<div class="date-divider">— Today —</div><div class="message received">Hello, how can I help you?<span class="msg-time">Now</span></div>';
+}
+function sendMessage() {
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if (!text) return;
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'message sent';
+  div.innerHTML = text + '<span class="msg-time">' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) + '</span>';
+  msgs.appendChild(div);
+  input.value = '';
+  msgs.scrollTop = msgs.scrollHeight;
+}
+</script>
+{% endblock %}

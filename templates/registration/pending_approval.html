@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Account Pending Approval — AgriGov Market</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: { "primary": "#0fbd1e", "background-light": "#f6f8f6" },
+      fontFamily: { "display": ["Manrope", "sans-serif"] },
+    },
+  },
+}
+</script>
+<style>body { font-family: 'Manrope', sans-serif; }</style>
+</head>
+<body class="bg-background-light min-h-screen flex flex-col">
+
+<!-- Header -->
+<header class="flex items-center justify-between border-b border-primary/10 bg-white px-6 md:px-10 py-3 sticky top-0 z-50 shadow-sm">
+  <a href="{% url 'home' %}" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+      <span class="material-symbols-outlined text-white text-sm">eco</span>
+    </div>
+    <h2 class="text-lg font-bold text-slate-900">AgriGov Market</h2>
+  </a>
+</header>
+
+<!-- Main -->
+<main class="flex-1 flex items-center justify-center px-4 py-16">
+  <div class="max-w-lg w-full text-center">
+
+    <!-- Icon -->
+    <div class="mx-auto mb-6 w-24 h-24 rounded-full bg-amber-100 flex items-center justify-center shadow-lg">
+      <span class="material-symbols-outlined text-amber-500 text-5xl">hourglass_top</span>
+    </div>
+
+    <!-- Title -->
+    <h1 class="text-3xl font-extrabold text-slate-900 mb-3">Account Under Review</h1>
+    <p class="text-slate-500 text-base mb-8 leading-relaxed">
+      Your registration was received successfully.<br>
+      An administrator will review and approve your account shortly.<br>
+      You will be able to log in once approved.
+    </p>
+
+    <!-- Info box -->
+    <div class="bg-white border border-amber-200 rounded-2xl p-6 mb-8 text-left shadow-sm space-y-4">
+      <div class="flex items-start gap-3">
+        <span class="material-symbols-outlined text-amber-500 mt-0.5">schedule</span>
+        <div>
+          <p class="font-semibold text-slate-800 text-sm">Typical wait time</p>
+          <p class="text-slate-500 text-sm">Account approvals are usually processed within 24 hours during business days.</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <span class="material-symbols-outlined text-primary mt-0.5">admin_panel_settings</span>
+        <div>
+          <p class="font-semibold text-slate-800 text-sm">What happens next?</p>
+          <p class="text-slate-500 text-sm">The Ministry administrator reviews your details and activates your account. You can then sign in normally.</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <span class="material-symbols-outlined text-blue-500 mt-0.5">info</span>
+        <div>
+          <p class="font-semibold text-slate-800 text-sm">Already approved?</p>
+          <p class="text-slate-500 text-sm">If you have received confirmation, go ahead and <a href="{% url 'login' %}" class="text-primary font-semibold underline">sign in here</a>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+      <a href="{% url 'login' %}"
+         class="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
+        <span class="material-symbols-outlined text-xl">login</span>
+        Go to Login
+      </a>
+      <a href="{% url 'home' %}"
+         class="flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all">
+        <span class="material-symbols-outlined text-xl">home</span>
+        Back to Home
+      </a>
+    </div>
+
+  </div>
+</main>
+
+<footer class="bg-white border-t border-primary/10 py-5 px-10 text-center text-xs text-slate-400">
+  © 2026 AgriGov Market. All rights reserved. A government-backed initiative for agricultural prosperity.
+</footer>
+
+</body>
+</html>

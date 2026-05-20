@@ -1,0 +1,97 @@
+{% extends 'transporter_base.html' %}
+{% block title %}Service Areas{% endblock %}
+{% block topbar_title %}🗺 Service Areas{% endblock %}
+{% block extra_style %}
+.status-badge{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:bold;}
+.s-active{background:#d4edda;color:#155724;}
+.s-coming{background:#fff3cd;color:#856404;}
+.map-section{margin:20px;}
+.map-section h3{color:#1e4620;margin-bottom:15px;font-size:15px;}
+.map-card{border-radius:12px;overflow:hidden;position:relative;height:220px;box-shadow:0 5px 15px rgba(0,0,0,0.1);}
+.map-card img{width:100%;height:100%;object-fit:cover;}
+.map-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.45);display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;text-align:center;}
+.map-overlay h2{font-size:20px;margin-bottom:6px;}
+.map-overlay a{color:#88d982;font-size:13px;margin-top:8px;}
+.area-pins{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+.pin{background:white;padding:6px 14px;border-radius:20px;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+.pin.coming{background:#fff3cd;color:#856404;}
+.add-btn{background:#2e8b42;color:white;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;}
+.controls{display:flex;gap:10px;margin:0 20px 15px;flex-wrap:wrap;align-items:center;}
+.controls input,.controls select{padding:9px 14px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none;background:white;}
+.controls input{flex:1;min-width:200px;}
+.dark .pin{background:#2a2a2a;color:#ddd;}
+{% endblock %}
+{% block content %}
+<div class="header">
+  <h1>Service Areas</h1>
+  <p>Manage the delivery areas where you provide transportation services</p>
+</div>
+<div class="stats-row">
+  <div class="stat-card"><h4>Total Areas</h4><p>{% if profile %}{{ profile.service_areas.split|length }}{% else %}0{% endif %}</p></div>
+  <div class="stat-card"><h4>Status</h4><p>{% if profile and profile.is_available %}Active{% else %}Inactive{% endif %}</p></div>
+  <div class="stat-card blue"><h4>Total Missions</h4><p>{{ total_missions }}</p></div>
+</div>
+<div class="controls">
+  <input type="text" placeholder="🔍 Search area...">
+  <button class="add-btn" onclick="document.getElementById('editAreaModal').classList.add('open')">＋ Update Areas</button>
+</div>
+<div class="table-container">
+  <h3 style="color:#1e4620;margin-bottom:15px;">📋 My Service Areas</h3>
+  {% if profile and profile.service_areas %}
+  <table>
+    <thead><tr><th>Service Area</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for area in profile.service_areas.split %}
+      <tr>
+        <td><strong>{{ area }}</strong></td>
+        <td><span class="status-badge s-active">✅ Active</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#aaa;text-align:center;padding:30px;">No service areas defined. <a href="{% url 'transporter_profile' %}" style="color:#2e8b42;">Update your profile →</a></p>
+  {% endif %}
+</div>
+<div class="map-section">
+  <h3>🗺 Coverage Map</h3>
+  <div class="map-card">
+    <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=1200&auto=format" alt="Map">
+    <div class="map-overlay">
+      <h2>📍 Service Coverage Map</h2>
+      <p>Algeria — Active delivery zones</p>
+      <a href="https://maps.google.com/?q=Algeria" target="_blank">🗺 Open in Google Maps</a>
+    </div>
+  </div>
+  <div class="area-pins">
+    {% if profile and profile.service_areas %}
+      {% for area in profile.service_areas.split %}
+      <span class="pin">📍 {{ area }}</span>
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>
+<div class="modal-bg" id="editAreaModal">
+  <div class="modal">
+    <h3>✏ Update Service Areas</h3>
+    <form method="post" action="{% url 'transporter_areas' %}">
+      {% csrf_token %}
+      <div class="modal-field">
+        <label>Service Areas (comma-separated wilayas)</label>
+        <input type="text" name="service_areas" value="{% if profile %}{{ profile.service_areas }}{% endif %}" placeholder="e.g. Algiers, Constantine, Oran, Sétif">
+      </div>
+      <div class="modal-field">
+        <label>Availability</label>
+        <select name="is_available">
+          <option value="true" {% if profile and profile.is_available %}selected{% endif %}>✅ Available</option>
+          <option value="false" {% if profile and not profile.is_available %}selected{% endif %}>🔴 Unavailable</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="modal-cancel" onclick="closeModals()">Cancel</button>
+        <button type="submit" class="modal-save">💾 Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

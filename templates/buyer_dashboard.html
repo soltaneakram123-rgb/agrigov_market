@@ -1,0 +1,281 @@
+{% extends 'buyer_base.html' %}
+{% block title %}Browse Products{% endblock %}
+{% block topbar_title %}🛒 Browse Products{% endblock %}
+
+{% block extra_style %}
+.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:20px;margin:20px;}
+.product-card{background:white;border-radius:14px;box-shadow:0 5px 15px rgba(0,0,0,0.08);overflow:hidden;transition:0.3s;}
+.product-card:hover{transform:translateY(-5px);box-shadow:0 10px 25px rgba(0,0,0,0.12);}
+.product-card .img-wrap{width:100%;height:130px;overflow:hidden;background:#f0f2f5;}
+.product-card img{width:100%;height:130px;object-fit:cover;display:block;transition:0.4s;}
+.product-card:hover img{transform:scale(1.05);}
+.card-body{padding:16px;}
+.card-body h3{color:#1e4620;font-size:15px;margin-bottom:4px;}
+.card-body p{color:#777;font-size:12px;margin-bottom:10px;line-height:1.4;}
+.card-price-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.card-price{font-size:18px;font-weight:bold;color:#1e4620;}
+.stock-badge{background:#e8f5e9;color:#2e7d32;font-size:11px;font-weight:bold;padding:3px 10px;border-radius:20px;}
+.stock-badge.low{background:#fff3cd;color:#856404;}
+.card-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.tag{background:#f0f2f5;color:#555;padding:3px 10px;border-radius:20px;font-size:11px;}
+.tag.organic{background:#e8f5e9;color:#2e7d32;}
+.card-buttons{display:flex;flex-direction:column;gap:7px;}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.btn-cart{background:#2e8b42;color:white;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:bold;cursor:pointer;transition:0.3s;}
+.btn-cart:hover{background:#256f35;}
+.btn-compare-sm{background:#f0f2f5;color:#555;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:bold;cursor:pointer;transition:0.3s;}
+.btn-order-now{background:#f0ad4e;color:white;width:100%;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:bold;cursor:pointer;transition:0.3s;}
+.btn-order-now:hover{background:#e09640;}
+.modal-qty{display:flex;align-items:center;gap:10px;margin:15px 0;}
+.modal-qty button{width:32px;height:32px;border:none;border-radius:8px;background:#2e8b42;color:white;cursor:pointer;font-size:16px;}
+.modal-qty input{width:70px;padding:6px;text-align:center;border:1px solid #ddd;border-radius:8px;font-size:14px;}
+.modal-add{background:#2e8b42;color:white;border:none;padding:9px 22px;border-radius:8px;cursor:pointer;font-weight:bold;}
+.no-result{text-align:center;padding:50px;color:#aaa;grid-column:1/-1;display:none;}
+.dark .product-card{background:#1e1e1e;}
+.dark .card-body h3{color:#88d982;}
+.dark .card-body p{color:#aaa;}
+.dark .card-price{color:#88d982;}
+.dark .tag{background:#2a2a2a;color:#ccc;}
+.dark .btn-compare-sm{background:#2a2a2a;color:#ccc;}
+{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="header-left">
+    <h1>Browse Products</h1>
+    <p>Search and explore fresh agricultural products from verified farms</p>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><h4>Products</h4><p>{{ products|length }}</p></div>
+  <div class="stat-card"><h4>My Orders</h4><p>{{ my_orders_count }}</p></div>
+  <div class="stat-card orange"><h4>Pending</h4><p>{{ pending_count }}</p></div>
+  <div class="stat-card blue"><h4>Delivered</h4><p>{{ delivered_count }}</p></div>
+</div>
+
+<div class="controls">
+  <input type="text" id="searchInput" placeholder="🔍 Search products...">
+  <select id="categoryFilter">
+    <option value="all">All Categories</option>
+    {% for cat in categories %}
+    <option value="{{ cat.name }}">{{ cat.name }}</option>
+    {% endfor %}
+  </select>
+  <select id="sortFilter">
+    <option value="default">Sort By</option>
+    <option value="price-low">💰 Price: Low to High</option>
+    <option value="price-high">💰 Price: High to Low</option>
+  </select>
+</div>
+
+<div class="product-grid" id="productGrid">
+  {% for product in products %}
+  <div class="product-card" data-category="{{ product.category.name }}" data-name="{{ product.name|lower }}" data-price="{{ product.price_per_kg }}">
+    <div class="img-wrap">
+      <img src="{{ product.image }}" alt="{{ product.name }}" loading="lazy">
+    </div>
+    <div class="card-body">
+      <h3>{{ product.name }}</h3>
+      <p>{{ product.category.name }} · {{ product.farm.name }} · {{ product.farm.location }}</p>
+      <div class="card-price-row">
+        <span class="card-price">{{ product.price_per_kg }} DA/Kg</span>
+        <span class="stock-badge {% if product.quantity_kg < 50 %}low{% endif %}">{{ product.quantity_kg }} Kg</span>
+      </div>
+      <div class="card-tags">
+        <span class="tag organic">🌿 Organic</span>
+        <span class="tag">{{ product.category.name }}</span>
+      </div>
+      <div class="card-buttons">
+        <div class="btn-row">
+          <button class="btn-cart" onclick="openOrderModal('{{ product.id }}','{{ product.name }}','{{ product.price_per_kg }}','{{ product.quantity_kg }}','{{ product.farm.name }}','{{ product.farm.location }}')">📦 Order</button>
+          <button class="btn-compare-sm" style="background:#e8f5e9;color:#1e4620;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:bold;cursor:pointer;" onclick="addToCart('{{ product.id }}','{{ product.name|escapejs }}','{{ product.price_per_kg }}','{{ product.farm.name|escapejs }}')" title="Add to cart">🛒</button>
+          <a href="{% url 'buyer_compare' %}" class="btn-compare-sm" style="display:flex;align-items:center;justify-content:center;text-decoration:none;">⚖ Compare</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="no-result" style="display:block;">
+    <p style="font-size:40px;">🌾</p>
+    <p style="margin-top:10px;">No products available at the moment.</p>
+  </div>
+  {% endfor %}
+  <div class="no-result" id="noResult">
+    <p style="font-size:40px;">🔍</p>
+    <p style="margin-top:10px;font-size:15px;">No products found.</p>
+  </div>
+</div>
+
+<!-- Order Modal -->
+<div class="modal-bg" id="orderModal">
+  <div class="modal">
+    <h3>📦 Place Order</h3>
+    <div class="modal-row"><span>Product</span><strong id="om-name"></strong></div>
+    <div class="modal-row"><span>Price</span><strong id="om-price"></strong></div>
+    <div class="modal-row"><span>Farm</span><strong id="om-farm"></strong></div>
+    <div class="modal-row"><span>Location</span><strong id="om-loc"></strong></div>
+    <div class="modal-row"><span>Available Stock</span><strong id="om-stock"></strong></div>
+    <form method="post" id="orderForm" action="">
+      {% csrf_token %}
+      <div style="margin:15px 0;">
+        <label style="font-size:12px;color:#777;text-transform:uppercase;">Quantity (Kg)</label>
+        <div class="modal-qty">
+          <button type="button" onclick="changeQty(-1)">−</button>
+          <input type="number" id="om-qty" name="quantity_kg" value="1" min="1" step="0.5">
+          <button type="button" onclick="changeQty(1)">＋</button>
+        </div>
+      </div>
+      <div id="om-total" style="font-size:16px;font-weight:bold;color:#1e4620;margin-bottom:15px;"></div>
+
+      <!-- Shipping Address Section -->
+      <div style="background:#f8faf8;border-radius:10px;padding:14px;margin-bottom:14px;border:1.5px solid #c8e6c9;">
+        <div style="font-size:13px;font-weight:700;color:#1e4620;margin-bottom:12px;">📍 Shipping Address</div>
+
+        <div style="margin-bottom:10px;">
+          <label style="font-size:11px;color:#777;text-transform:uppercase;display:block;margin-bottom:4px;">Wilaya / Province *</label>
+          <select name="shipping_wilaya" id="om-wilaya" required
+            style="width:100%;padding:9px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;background:white;outline:none;">
+            <option value="">Select Wilaya...</option>
+            {% for w in wilayas %}<option value="{{ w }}">{{ w }}</option>{% endfor %}
+            <option value="Adrar">Adrar</option><option value="Chlef">Chlef</option>
+            <option value="Laghouat">Laghouat</option><option value="Oum El Bouaghi">Oum El Bouaghi</option>
+            <option value="Batna">Batna</option><option value="Béjaïa">Béjaïa</option>
+            <option value="Biskra">Biskra</option><option value="Béchar">Béchar</option>
+            <option value="Blida">Blida</option><option value="Bouira">Bouira</option>
+            <option value="Tamanrasset">Tamanrasset</option><option value="Tébessa">Tébessa</option>
+            <option value="Tlemcen">Tlemcen</option><option value="Tiaret">Tiaret</option>
+            <option value="Tizi Ouzou">Tizi Ouzou</option><option value="Alger">Alger</option>
+            <option value="Djelfa">Djelfa</option><option value="Jijel">Jijel</option>
+            <option value="Sétif">Sétif</option><option value="Saïda">Saïda</option>
+            <option value="Skikda">Skikda</option><option value="Sidi Bel Abbès">Sidi Bel Abbès</option>
+            <option value="Annaba">Annaba</option><option value="Guelma">Guelma</option>
+            <option value="Constantine">Constantine</option><option value="Médéa">Médéa</option>
+            <option value="Mostaganem">Mostaganem</option><option value="M'Sila">M'Sila</option>
+            <option value="Mascara">Mascara</option><option value="Ouargla">Ouargla</option>
+            <option value="Oran">Oran</option><option value="El Bayadh">El Bayadh</option>
+            <option value="Illizi">Illizi</option><option value="Bordj Bou Arréridj">Bordj Bou Arréridj</option>
+            <option value="Boumerdès">Boumerdès</option><option value="El Tarf">El Tarf</option>
+            <option value="Tindouf">Tindouf</option><option value="Tissemsilt">Tissemsilt</option>
+            <option value="El Oued">El Oued</option><option value="Khenchela">Khenchela</option>
+            <option value="Souk Ahras">Souk Ahras</option><option value="Tipaza">Tipaza</option>
+            <option value="Mila">Mila</option><option value="Aïn Defla">Aïn Defla</option>
+            <option value="Naâma">Naâma</option><option value="Aïn Témouchent">Aïn Témouchent</option>
+            <option value="Ghardaïa">Ghardaïa</option><option value="Relizane">Relizane</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <label style="font-size:11px;color:#777;text-transform:uppercase;display:block;margin-bottom:4px;">Full Address *</label>
+          <input type="text" name="shipping_address" id="om-address" required
+            placeholder="Street, neighbourhood, city..."
+            style="width:100%;padding:9px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <label style="font-size:11px;color:#777;text-transform:uppercase;display:block;margin-bottom:4px;">Phone Number *</label>
+          <input type="tel" name="shipping_phone" id="om-phone" required
+            placeholder="e.g. 0555 123 456"
+            style="width:100%;padding:9px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
+        </div>
+
+        <div>
+          <label style="font-size:11px;color:#777;text-transform:uppercase;display:block;margin-bottom:4px;">Delivery Notes (optional)</label>
+          <textarea name="shipping_notes" id="om-notes" rows="2"
+            placeholder="Any special instructions for the transporter..."
+            style="width:100%;padding:9px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;outline:none;resize:none;box-sizing:border-box;font-family:inherit;"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="modal-close" onclick="closeModal('orderModal')">Cancel</button>
+        <button type="submit" class="modal-add">✅ Confirm Order</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Cart helpers (sessionStorage) ──────────────────────────────────────────
+function getCart() {
+  try { return JSON.parse(sessionStorage.getItem('agrigov_cart') || '[]'); }
+  catch { return []; }
+}
+function saveCart(cart) {
+  try { sessionStorage.setItem('agrigov_cart', JSON.stringify(cart)); } catch {}
+}
+function addToCart(id, name, price, farm) {
+  let cart = getCart();
+  const existing = cart.find(i => i.id === id);
+  if (existing) {
+    existing.qty = parseFloat((existing.qty + 0.5).toFixed(1));
+    showToast('🛒 ' + name + ' quantity updated in cart!');
+  } else {
+    cart.push({ id, name, price: parseFloat(price), farm, qty: 1 });
+    showToast('✅ ' + name + ' added to cart!');
+  }
+  saveCart(cart);
+  updateCartBadge();
+}
+function updateCartBadge() {
+  const cart = getCart();
+  const total = cart.reduce((s, i) => s + i.qty, 0);
+  const badge = document.getElementById('cart-badge');
+  if (badge) { badge.textContent = total > 0 ? total : ''; badge.style.display = total > 0 ? 'inline' : 'none'; }
+}
+document.addEventListener('DOMContentLoaded', updateCartBadge);
+
+let currentPrice = 0;
+function openOrderModal(productId, name, price, stock, farm, loc) {
+  currentPrice = parseFloat(price);
+  document.getElementById('om-name').textContent = name;
+  document.getElementById('om-price').textContent = price + ' DA/Kg';
+  document.getElementById('om-farm').textContent = farm;
+  document.getElementById('om-loc').textContent = loc;
+  document.getElementById('om-stock').textContent = stock + ' Kg';
+  document.getElementById('om-qty').value = 1;
+  document.getElementById('orderForm').action = '/place-order/' + productId + '/';
+  updateTotal();
+  document.getElementById('orderModal').classList.add('open');
+}
+function changeQty(d) {
+  const input = document.getElementById('om-qty');
+  const v = parseFloat(input.value) + d * 0.5;
+  if (v >= 0.5) { input.value = v; updateTotal(); }
+}
+function updateTotal() {
+  const qty = parseFloat(document.getElementById('om-qty').value) || 1;
+  document.getElementById('om-total').textContent = 'Total: ' + (currentPrice * qty).toFixed(0) + ' DA';
+}
+document.getElementById('om-qty').addEventListener('input', updateTotal);
+
+// Search & filter
+function filterProducts() {
+  const q = document.getElementById("searchInput").value.toLowerCase();
+  const cat = document.getElementById("categoryFilter").value;
+  const sort = document.getElementById("sortFilter").value;
+  let cards = Array.from(document.querySelectorAll("#productGrid .product-card"));
+  let visible = 0;
+  cards.forEach(card => {
+    const matchQ = q === "" || card.dataset.name.includes(q) || card.textContent.toLowerCase().includes(q);
+    const matchC = cat === "all" || card.dataset.category === cat;
+    const show = matchQ && matchC;
+    card.style.display = show ? "" : "none";
+    if (show) visible++;
+  });
+  if (sort !== "default") {
+    const grid = document.getElementById("productGrid");
+    cards.sort((a, b) => sort === "price-low"
+      ? parseFloat(a.dataset.price) - parseFloat(b.dataset.price)
+      : parseFloat(b.dataset.price) - parseFloat(a.dataset.price));
+    cards.forEach(c => grid.appendChild(c));
+  }
+  document.getElementById("noResult").style.display = visible === 0 ? "block" : "none";
+}
+document.getElementById("searchInput").addEventListener("keyup", filterProducts);
+document.getElementById("categoryFilter").addEventListener("change", filterProducts);
+document.getElementById("sortFilter").addEventListener("change", filterProducts);
+</script>
+{% endblock %}

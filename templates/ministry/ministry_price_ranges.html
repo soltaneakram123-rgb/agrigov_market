@@ -1,0 +1,300 @@
+{% extends 'ministry/ministry_base.html' %}
+{% block title %}Seasonal Price Ranges{% endblock %}
+{% block topbar_title %}📊 Seasonal Price Ranges{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>📊 Seasonal Price Ranges</h1>
+    <p>Set minimum & maximum price per product for each season — farmers must stay within these limits</p>
+  </div>
+  <div class="header-actions">
+    <button class="hbtn" onclick="openAddModal()">+ Set Price Range</button>
+  </div>
+</div>
+
+<!-- Current season badge -->
+<div style="margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+  <span style="font-size:13px;color:#888;">Current season:</span>
+  {% if current_season == 'spring' %}<span class="badge badge-green" style="font-size:13px;">🌸 Spring</span>
+  {% elif current_season == 'summer' %}<span class="badge badge-orange" style="font-size:13px;">☀️ Summer</span>
+  {% elif current_season == 'autumn' %}<span class="badge badge-orange" style="font-size:13px;">🍂 Autumn</span>
+  {% elif current_season == 'winter' %}<span class="badge badge-blue" style="font-size:13px;">❄️ Winter</span>
+  {% endif %}
+  <span style="font-size:12px;color:#aaa;">— Active ranges for this season are enforced on farmers right now</span>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+  <div class="stat-card"><h4>Total Ranges</h4><p>{{ stats.total }}</p></div>
+  <div class="stat-card teal"><h4>🌸 Spring</h4><p>{{ stats.spring }}</p></div>
+  <div class="stat-card orange"><h4>☀️ Summer</h4><p>{{ stats.summer }}</p></div>
+  <div class="stat-card orange"><h4>🍂 Autumn</h4><p>{{ stats.autumn }}</p></div>
+  <div class="stat-card blue"><h4>❄️ Winter</h4><p>{{ stats.winter }}</p></div>
+</div>
+
+<!-- Filters -->
+<form method="get" class="controls-bar">
+  <input type="text" name="q" value="{{ search }}" placeholder="Search product name…">
+  <select name="season" onchange="this.form.submit()">
+    <option value="">All Seasons</option>
+    {% for code, label in season_choices %}
+    <option value="{{ code }}" {% if season_filter == code %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn btn-primary" type="submit">Filter</button>
+  {% if search or season_filter %}<a href="{% url 'ministry_price_ranges' %}" class="btn btn-danger">Clear</a>{% endif %}
+</form>
+
+<!-- Season tabs -->
+<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+  <a href="{% url 'ministry_price_ranges' %}" class="btn {% if not season_filter %}btn-primary{% else %}btn-info{% endif %}">All</a>
+  <a href="?season=spring" class="btn {% if season_filter == 'spring' %}btn-primary{% else %}btn-success{% endif %}">🌸 Spring</a>
+  <a href="?season=summer" class="btn {% if season_filter == 'summer' %}btn-primary{% else %}btn-warn{% endif %}">☀️ Summer</a>
+  <a href="?season=autumn" class="btn {% if season_filter == 'autumn' %}btn-primary{% else %}btn-warn{% endif %}">🍂 Autumn</a>
+  <a href="?season=winter" class="btn {% if season_filter == 'winter' %}btn-primary{% else %}btn-info{% endif %}">❄️ Winter</a>
+</div>
+
+<!-- Table -->
+<div class="table-card">
+  <div class="table-card-header">
+    <h3>Price Ranges ({{ ranges|length }})</h3>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Season</th>
+          <th>Min Price (DA/kg)</th>
+          <th>Max Price (DA/kg)</th>
+          <th>Range</th>
+          <th>Status</th>
+          <th>Last Updated</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in ranges %}
+        <tr {% if r.season == current_season %}style="background:#f9fef9;"{% endif %}>
+          <td>
+            <strong>{{ r.product_type.name }}</strong>
+            {% if r.product_type.name_ar %}<br><small style="color:#aaa;">{{ r.product_type.name_ar }}</small>{% endif %}
+          </td>
+          <td>
+            {% if r.season == 'spring' %}<span class="badge badge-green">🌸 Spring</span>
+            {% elif r.season == 'summer' %}<span class="badge badge-orange">☀️ Summer</span>
+            {% elif r.season == 'autumn' %}<span class="badge badge-orange">🍂 Autumn</span>
+            {% elif r.season == 'winter' %}<span class="badge badge-blue">❄️ Winter</span>
+            {% endif %}
+          </td>
+          <td>
+            <span style="color:#2e8b42;font-weight:700;font-size:15px;">{{ r.min_price }} DA</span>
+          </td>
+          <td>
+            <span style="color:#e65100;font-weight:700;font-size:15px;">{{ r.max_price }} DA</span>
+          </td>
+          <td>
+            <!-- Visual bar -->
+            <div style="display:flex;align-items:center;gap:6px;min-width:140px;">
+              <span style="font-size:11px;color:#888;">{{ r.min_price }}</span>
+              <div style="flex:1;height:8px;background:#e0e0e0;border-radius:4px;overflow:hidden;">
+                <div style="width:100%;height:100%;background:linear-gradient(90deg,#2e8b42,#f0ad4e);border-radius:4px;"></div>
+              </div>
+              <span style="font-size:11px;color:#888;">{{ r.max_price }}</span>
+            </div>
+          </td>
+          <td>
+            {% if r.season == current_season %}
+            <span class="badge badge-green">✅ Active Now</span>
+            {% else %}
+            <span class="badge badge-grey">Inactive</span>
+            {% endif %}
+          </td>
+          <td style="font-size:12px;color:#aaa;">{{ r.updated_at|date:"d M Y" }}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn btn-info" onclick='openEditModal({{ r.id }}, {{ r.min_price }}, {{ r.max_price }})'>Edit</button>
+            <button class="btn btn-danger" onclick="deleteRange({{ r.id }}, &quot;{{ r.product_type.name }}&quot;)">Delete</button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" style="text-align:center;color:#aaa;padding:50px;">
+            <div style="font-size:40px;margin-bottom:10px;">📊</div>
+            No price ranges set yet. Click <strong>"+ Set Price Range"</strong> to begin.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Info box -->
+<div class="table-card" style="padding:20px;border-left:4px solid #2e8b42;">
+  <h3 style="color:#1e4620;margin-bottom:12px;">ℹ️ How it works</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">
+    <div style="background:#f8faf8;border-radius:10px;padding:14px;">
+      <div style="font-size:20px;margin-bottom:6px;">1️⃣</div>
+      <div style="font-weight:700;color:#1e4620;margin-bottom:4px;">Admin Sets Range</div>
+      <div style="font-size:13px;color:#666;">You define min/max price for each product per season on this page.</div>
+    </div>
+    <div style="background:#f8faf8;border-radius:10px;padding:14px;">
+      <div style="font-size:20px;margin-bottom:6px;">2️⃣</div>
+      <div style="font-weight:700;color:#1e4620;margin-bottom:4px;">Farmer Adds Product</div>
+      <div style="font-size:13px;color:#666;">When a farmer lists a product, the system shows the allowed range for the current season.</div>
+    </div>
+    <div style="background:#f8faf8;border-radius:10px;padding:14px;">
+      <div style="font-size:20px;margin-bottom:6px;">3️⃣</div>
+      <div style="font-weight:700;color:#1e4620;margin-bottom:4px;">Price Enforced</div>
+      <div style="font-size:13px;color:#666;">If the farmer enters a price outside the range, the form is rejected with a clear error message.</div>
+    </div>
+    <div style="background:#f8faf8;border-radius:10px;padding:14px;">
+      <div style="font-size:20px;margin-bottom:6px;">4️⃣</div>
+      <div style="font-weight:700;color:#1e4620;margin-bottom:4px;">Auto Season Detection</div>
+      <div style="font-size:13px;color:#666;">The system automatically uses the current season's range — no manual switching needed.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Modal ── -->
+<div class="modal-bg" id="addModal">
+  <div class="modal">
+    <h3>➕ Set Seasonal Price Range</h3>
+    <div class="modal-field">
+      <label>Product *</label>
+      <select id="addProduct">
+        <option value="">Select product…</option>
+        {% for pt in product_types %}
+        <option value="{{ pt.id }}">{{ pt.name }}{% if pt.name_ar %} — {{ pt.name_ar }}{% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>Season *</label>
+      <select id="addSeason">
+        {% for code, label in season_choices %}
+        <option value="{{ code }}" {% if code == current_season %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div class="modal-field">
+        <label>Minimum Price (DA/kg) *</label>
+        <input type="number" id="addMin" min="0" step="0.5" placeholder="e.g. 50">
+      </div>
+      <div class="modal-field">
+        <label>Maximum Price (DA/kg) *</label>
+        <input type="number" id="addMax" min="0" step="0.5" placeholder="e.g. 200">
+      </div>
+    </div>
+
+    <!-- Live preview -->
+    <div id="addPreview" style="display:none;background:#e8f5e9;border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px;color:#1e4620;">
+      <strong>Preview:</strong> Farmers must price between <span id="previewMin" style="color:#2e8b42;font-weight:700;"></span> DA and <span id="previewMax" style="color:#e65100;font-weight:700;"></span> DA/kg
+    </div>
+
+    <div id="addError" style="display:none;background:#ffebee;color:#b71c1c;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:13px;"></div>
+
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('addModal')">Cancel</button>
+      <button class="modal-save" onclick="saveAdd()">Set Range</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Edit Modal ── -->
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <h3>✏️ Edit Price Range</h3>
+    <input type="hidden" id="editId">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div class="modal-field">
+        <label>Minimum Price (DA/kg) *</label>
+        <input type="number" id="editMin" min="0" step="0.5">
+      </div>
+      <div class="modal-field">
+        <label>Maximum Price (DA/kg) *</label>
+        <input type="number" id="editMax" min="0" step="0.5">
+      </div>
+    </div>
+    <div id="editError" style="display:none;background:#ffebee;color:#b71c1c;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:13px;"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('editModal')">Cancel</button>
+      <button class="modal-save" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openAddModal() {
+  document.getElementById('addError').style.display = 'none';
+  document.getElementById('addPreview').style.display = 'none';
+  document.getElementById('addModal').classList.add('open');
+}
+function openEditModal(id, min, max) {
+  document.getElementById('editId').value = id;
+  document.getElementById('editMin').value = min;
+  document.getElementById('editMax').value = max;
+  document.getElementById('editError').style.display = 'none';
+  document.getElementById('editModal').classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Live preview
+document.getElementById('addMin')?.addEventListener('input', updatePreview);
+document.getElementById('addMax')?.addEventListener('input', updatePreview);
+function updatePreview() {
+  const min = document.getElementById('addMin').value;
+  const max = document.getElementById('addMax').value;
+  if (min && max) {
+    document.getElementById('previewMin').textContent = min;
+    document.getElementById('previewMax').textContent = max;
+    document.getElementById('addPreview').style.display = 'block';
+  }
+}
+
+async function saveAdd() {
+  const errEl = document.getElementById('addError');
+  errEl.style.display = 'none';
+  const pt = document.getElementById('addProduct').value;
+  const season = document.getElementById('addSeason').value;
+  const min = document.getElementById('addMin').value;
+  const max = document.getElementById('addMax').value;
+  if (!pt || !season || !min || !max) { errEl.textContent = 'All fields required'; errEl.style.display = 'block'; return; }
+  if (parseFloat(min) >= parseFloat(max)) { errEl.textContent = 'Minimum must be less than Maximum'; errEl.style.display = 'block'; return; }
+
+  const data = await apiPost('/ministry/price-ranges/add/', {
+    product_type_id: pt, season, min_price: min, max_price: max
+  });
+  if (data.status === 'ok') {
+    showToast(`Price range set for ${data.product} — ${data.season} ✅`);
+    setTimeout(() => location.reload(), 700);
+  } else {
+    errEl.textContent = data.msg || 'Error occurred';
+    errEl.style.display = 'block';
+  }
+}
+
+async function saveEdit() {
+  const errEl = document.getElementById('editError');
+  errEl.style.display = 'none';
+  const id = document.getElementById('editId').value;
+  const min = document.getElementById('editMin').value;
+  const max = document.getElementById('editMax').value;
+  if (parseFloat(min) >= parseFloat(max)) { errEl.textContent = 'Minimum must be less than Maximum'; errEl.style.display = 'block'; return; }
+
+  const data = await apiPost(`/ministry/price-ranges/${id}/edit/`, { min_price: min, max_price: max });
+  if (data.status === 'ok') { showToast('Price range updated ✅'); setTimeout(() => location.reload(), 700); }
+  else { errEl.textContent = data.msg || 'Error'; errEl.style.display = 'block'; }
+}
+
+async function deleteRange(id, name) {
+  if (!confirm(`Delete price range for "${name}"?`)) return;
+  const data = await apiPost(`/ministry/price-ranges/${id}/delete/`, {});
+  if (data.status === 'ok') { showToast('Deleted'); setTimeout(() => location.reload(), 700); }
+}
+</script>
+{% endblock %}

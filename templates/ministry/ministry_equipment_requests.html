@@ -1,0 +1,177 @@
+{% extends 'ministry/ministry_base.html' %}
+{% block title %}Equipment Requests{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2 style="margin:0;font-size:22px;">📋 Equipment Rental Requests</h2>
+    <p style="margin:5px 0 0;opacity:.85;font-size:14px;">Review and manage farmer requests</p>
+  </div>
+  <a href="{% url 'ministry_equipment' %}" class="btn" style="background:white;color:#1e4620;font-weight:600;padding:10px 18px;border-radius:10px;text-decoration:none;font-size:13px;">
+    ← Back to Equipment
+  </a>
+</div>
+
+<div style="display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap;">
+  <div class="stat-card"><h4>Total Requests</h4><p>{{ requests|length }}</p></div>
+  <div class="stat-card orange"><h4>Pending</h4><p>{{ pending_count }}</p></div>
+  <div class="stat-card blue"><h4>Approved</h4><p>{{ approved_count }}</p></div>
+  <div class="stat-card"><h4>Rejected</h4><p>{{ rejected_count }}</p></div>
+</div>
+
+<div class="controls-bar">
+  <input type="text" id="searchInput" placeholder="🔍 Search by farmer or equipment..." oninput="filterRows()">
+  <select id="statusFilter" onchange="filterRows()">
+    <option value="">All Statuses</option>
+    <option value="pending">Pending</option>
+    <option value="approved">Approved</option>
+    <option value="rejected">Rejected</option>
+    <option value="returned">Returned</option>
+  </select>
+</div>
+
+<div class="table-card">
+  <div class="table-card-header">
+    <h3>Request List</h3>
+    <span id="countLabel" style="font-size:13px;color:#777;">{{ requests|length }} requests</span>
+  </div>
+  <table id="reqTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Farmer</th>
+        <th>Equipment</th>
+        <th>From</th>
+        <th>To</th>
+        <th>Reason</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in requests %}
+      <tr data-status="{{ r.status }}" data-search="{{ r.farmer.username|lower }} {{ r.equipment.name|lower }}">
+        <td style="color:#aaa;font-size:12px;">#{{ r.id }}</td>
+        <td>
+          <strong>{{ r.farmer.get_full_name|default:r.farmer.username }}</strong>
+          <br><span style="font-size:11px;color:#888;">{{ r.farmer.username }}</span>
+        </td>
+        <td>
+          <strong>{{ r.equipment.name }}</strong>
+          {% if r.equipment.name_ar %}<br><span style="font-size:11px;color:#aaa;direction:rtl;">{{ r.equipment.name_ar }}</span>{% endif %}
+          <br><span style="font-size:11px;color:#888;">{{ r.equipment.get_category_display }}</span>
+          {% if r.equipment.price_per_day %}
+          <br><span style="font-size:11px;color:#1565c0;font-weight:600;">{{ r.equipment.price_per_day }} DA/day</span>
+          {% endif %}
+        </td>
+        <td>{{ r.start_date|date:"d M Y" }}</td>
+        <td>{{ r.end_date|date:"d M Y" }}</td>
+        <td style="max-width:150px;font-size:12px;color:#555;">{{ r.reason|truncatechars:60 }}</td>
+        <td id="status-{{ r.id }}">
+          {% if r.status == 'pending' %}
+            <span class="badge" style="background:#fff3cd;color:#856404;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;">⏳ Pending</span>
+          {% elif r.status == 'approved' %}
+            <span class="badge" style="background:#d4edda;color:#155724;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;">✅ Approved</span>
+          {% elif r.status == 'rejected' %}
+            <span class="badge" style="background:#f8d7da;color:#721c24;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;">❌ Rejected</span>
+          {% else %}
+            <span class="badge" style="background:#e2e3e5;color:#383d41;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;">↩ Returned</span>
+          {% endif %}
+        </td>
+        <td id="actions-{{ r.id }}">
+          {% if r.status == 'pending' %}
+          <button onclick="openDecideModal({{ r.id }},'{{ r.farmer.get_full_name|default:r.farmer.username|escapejs }}','{{ r.equipment.name|escapejs }}')"
+            style="background:#e8f5e9;color:#2e8b42;border:none;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">
+            ⚖️ Decide
+          </button>
+          {% elif r.status == 'approved' %}
+          <button onclick="markReturned({{ r.id }})"
+            style="background:#e3f2fd;color:#1565c0;border:none;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">
+            ↩ Returned
+          </button>
+          {% else %}
+          <span style="font-size:11px;color:#aaa;">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" style="text-align:center;color:#aaa;padding:40px;">No requests yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Decide Modal -->
+<div id="decideModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:14px;padding:28px;width:440px;box-shadow:0 8px 40px rgba(0,0,0,.2);">
+    <h3 style="margin:0 0 6px;font-size:17px;color:#1e4620;">⚖️ Review Request</h3>
+    <p id="decideSub" style="font-size:13px;color:#888;margin:0 0 18px;"></p>
+    <div>
+      <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:5px;">Note to farmer (optional)</label>
+      <textarea id="decideNote" rows="3" placeholder="Add a note for the farmer..." style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box;"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px;">
+      <button onclick="closeDecide()" style="flex:1;padding:10px;background:#f5f5f5;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Cancel</button>
+      <button onclick="decide('rejected')" style="flex:1;padding:10px;background:#c62828;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">❌ Reject</button>
+      <button onclick="decide('approved')" style="flex:1;padding:10px;background:#2e8b42;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">✅ Approve</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" style="position:fixed;bottom:30px;right:30px;background:#1e4620;color:white;padding:14px 22px;border-radius:10px;font-size:14px;font-weight:bold;display:none;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.3);"></div>
+
+<script>
+function getCsrf(){return document.cookie.split(';').find(c=>c.trim().startsWith('csrftoken=')).split('=')[1];}
+function showToast(msg,ok=true){const t=document.getElementById('toast');t.textContent=msg;t.style.background=ok?'#1e4620':'#c62828';t.style.display='block';setTimeout(()=>t.style.display='none',2500);}
+
+let currentReqId=null;
+function openDecideModal(id,farmer,equip){
+  currentReqId=id;
+  document.getElementById('decideSub').textContent=`Farmer: ${farmer} — Equipment: ${equip}`;
+  document.getElementById('decideNote').value='';
+  document.getElementById('decideModal').style.display='flex';
+}
+function closeDecide(){document.getElementById('decideModal').style.display='none';currentReqId=null;}
+document.getElementById('decideModal').addEventListener('click',e=>{if(e.target.id==='decideModal')closeDecide();});
+
+async function decide(status){
+  if(!currentReqId)return;
+  const note=document.getElementById('decideNote').value;
+  const res=await fetch(`/ministry/equipment/requests/${currentReqId}/update/`,{
+    method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf()},
+    body:JSON.stringify({status,admin_note:note})
+  });
+  const data=await res.json();
+  if(data.status==='ok'){
+    showToast(status==='approved'?'✅ Request approved':'❌ Request rejected');
+    closeDecide();
+    setTimeout(()=>location.reload(),900);
+  } else showToast('❌ Error',false);
+}
+
+async function markReturned(id){
+  if(!confirm('Mark this equipment as returned?'))return;
+  const res=await fetch(`/ministry/equipment/requests/${id}/update/`,{
+    method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf()},
+    body:JSON.stringify({status:'returned',admin_note:''})
+  });
+  const data=await res.json();
+  if(data.status==='ok'){showToast('↩ Marked as returned');setTimeout(()=>location.reload(),900);}
+  else showToast('❌ Error',false);
+}
+
+function filterRows(){
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  const st=document.getElementById('statusFilter').value;
+  let count=0;
+  document.querySelectorAll('#reqTable tbody tr').forEach(r=>{
+    if(!r.dataset.search)return;
+    const mq=!q||r.dataset.search.includes(q);
+    const ms=!st||r.dataset.status===st;
+    r.style.display=(mq&&ms)?'':'none';
+    if(mq&&ms)count++;
+  });
+  document.getElementById('countLabel').textContent=count+' requests';
+}
+</script>
+{% endblock %}

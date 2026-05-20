@@ -1,0 +1,97 @@
+{% extends 'farmer_base.html' %}
+{% block title %}My Products{% endblock %}
+{% block topbar_title %}🌽 My Products{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="header-left">
+    <h1>My Products</h1>
+    <p>Manage and control your farm products</p>
+  </div>
+  <a href="{% url 'add_product' %}" class="add-btn">➕ Add Product</a>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><h4>Total Products</h4><p>{{ total_products }}</p></div>
+  <div class="stat-card"><h4>Available</h4><p>{{ available_products }}</p></div>
+  <div class="stat-card orange"><h4>Low Stock</h4><p>{{ low_stock }}</p></div>
+  <div class="stat-card red"><h4>Out of Stock</h4><p>{{ out_of_stock }}</p></div>
+</div>
+
+<div class="controls">
+  <input type="text" id="searchInput" placeholder="🔍 Search product...">
+  <select id="statusFilter">
+    <option value="all">All Status</option>
+    <option value="available">Available</option>
+    <option value="low">Low Stock</option>
+    <option value="out">Out of Stock</option>
+  </select>
+</div>
+
+<div class="table-container">
+  <div class="table-header">
+    <h3>📋 Products List</h3>
+    <span style="font-size:13px;color:#777;" id="resultCount">{{ products|length }} products</span>
+  </div>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Product</th><th>Category</th><th>Price/Kg</th><th>Quantity</th><th>Status</th><th>Actions</th></tr>
+    </thead>
+    <tbody id="productsBody">
+      {% for product in products %}
+      <tr data-status="{% if product.is_available and product.quantity_kg > 50 %}available{% elif product.is_available %}low{% else %}out{% endif %}">
+        <td><strong>#P-{{ product.id }}</strong></td>
+        <td>{{ product.name }}</td>
+        <td>{{ product.category.name }}</td>
+        <td>{{ product.price_per_kg }} DA</td>
+        <td>{{ product.quantity_kg }} Kg</td>
+        <td>
+          {% if product.is_available and product.quantity_kg > 50 %}
+            <span class="badge badge-confirmed">✅ Available</span>
+          {% elif product.is_available %}
+            <span class="badge badge-pending">⚠ Low Stock</span>
+          {% else %}
+            <span class="badge badge-rejected">❌ Out of Stock</span>
+          {% endif %}
+        </td>
+        <td>
+          <form method="post" action="{% url 'delete_product' product.id %}" style="display:inline;" onsubmit="return confirm('Delete this product?')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-delete">🗑</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px;">No products yet. <a href="{% url 'add_product' %}">Add your first product!</a></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="no-result" id="noResult">
+    <p style="font-size:36px;">🔍</p>
+    <p style="margin-top:10px;">No products found.</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterProducts() {
+  const q = document.getElementById("searchInput").value.toLowerCase();
+  const status = document.getElementById("statusFilter").value;
+  const rows = document.querySelectorAll("#productsBody tr");
+  let visible = 0;
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    const matchQ = q === "" || text.includes(q);
+    const matchS = status === "all" || row.dataset.status === status;
+    const show = matchQ && matchS;
+    row.style.display = show ? "" : "none";
+    if (show) visible++;
+  });
+  document.getElementById("resultCount").textContent = visible + " product" + (visible !== 1 ? "s" : "");
+  document.getElementById("noResult").style.display = visible === 0 ? "block" : "none";
+}
+document.getElementById("searchInput").addEventListener("keyup", filterProducts);
+document.getElementById("statusFilter").addEventListener("change", filterProducts);
+</script>
+{% endblock %}

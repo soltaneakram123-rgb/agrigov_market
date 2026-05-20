@@ -1,0 +1,110 @@
+{% extends 'ministry/ministry_base.html' %}
+{% block title %}Reports{% endblock %}
+{% block topbar_title %}📈 Reports & Analytics{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>📈 Reports & Analytics</h1>
+    <p>Platform-wide performance data and statistics</p>
+  </div>
+</div>
+
+<!-- Summary KPIs -->
+<div class="stats-row">
+  <div class="stat-card teal">
+    <h4>Total Revenue</h4>
+    <p>{{ total_revenue|floatformat:0 }}</p>
+    <div class="sub">DA (delivered orders)</div>
+  </div>
+  <div class="stat-card">
+    <h4>Total Orders</h4>
+    <p>{{ total_orders }}</p>
+  </div>
+  <div class="stat-card blue">
+    <h4>Delivered Orders</h4>
+    <p>{{ delivered_orders }}</p>
+    <div class="sub">
+      {% if total_orders %}{{ delivered_orders|floatformat:0 }}{% else %}0{% endif %} of {{ total_orders }}
+    </div>
+  </div>
+</div>
+
+<!-- Monthly breakdown -->
+<div class="table-card">
+  <div class="table-card-header">
+    <h3>📅 Monthly Order Summary</h3>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Month</th><th>Orders</th><th>Revenue (DA)</th></tr>
+      </thead>
+      <tbody>
+        {% for row in monthly %}
+        <tr>
+          <td><strong>{{ row.month|date:"F Y" }}</strong></td>
+          <td>{{ row.count }}</td>
+          <td>{{ row.revenue|default:"0"|floatformat:2 }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" style="text-align:center;color:#aaa;padding:30px;">No data yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Top Farmers -->
+<div class="table-card">
+  <div class="table-card-header">
+    <h3>🌱 Top Farmers by Revenue</h3>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Rank</th><th>Farmer</th><th>Orders Sold</th><th>Revenue (DA)</th></tr>
+      </thead>
+      <tbody>
+        {% for f in top_farmers %}
+        <tr>
+          <td><strong>#{{ forloop.counter }}</strong></td>
+          <td>{{ f.username }}</td>
+          <td>{{ f.order_count }}</td>
+          <td><strong>{{ f.revenue|default:"0"|floatformat:2 }}</strong></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" style="text-align:center;color:#aaa;padding:30px;">No data yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Top Products -->
+<div class="table-card">
+  <div class="table-card-header">
+    <h3>🛒 Top Ordered Products</h3>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Rank</th><th>Product</th><th>Farm</th><th>Category</th><th>Order Count</th></tr>
+      </thead>
+      <tbody>
+        {% for prod in top_products %}
+        <tr>
+          <td><strong>#{{ forloop.counter }}</strong></td>
+          <td>{{ prod.name }}</td>
+          <td>{{ prod.farm.name }}</td>
+          <td>{{ prod.category.name }}</td>
+          <td><span class="badge badge-green">{{ prod.order_count }} orders</span></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" style="text-align:center;color:#aaa;padding:30px;">No data yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

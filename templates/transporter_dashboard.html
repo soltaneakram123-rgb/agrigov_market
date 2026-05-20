@@ -1,0 +1,295 @@
+{% extends 'transporter_base.html' %}
+{% block title %}My Missions{% endblock %}
+{% block topbar_title %}📋 My Missions{% endblock %}
+
+{% block extra_style %}
+.status-select{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:bold;border:none;cursor:pointer;outline:none;transition:0.3s;}
+.s-pending{background:#fff3cd;color:#856404;}
+.s-pickup{background:#cce5ff;color:#004085;}
+.s-transit{background:#e0ccff;color:#4b0082;}
+.s-delivered{background:#d4edda;color:#155724;}
+.active-mission-banner{margin:0 20px 20px;background:#fff3cd;border:2px solid #f0ad4e;border-radius:12px;padding:16px 20px;display:flex;align-items:center;gap:14px;}
+.active-mission-banner span.icon{font-size:28px;flex-shrink:0;}
+.active-mission-banner .text strong{color:#856404;font-size:14px;display:block;}
+.active-mission-banner .text p{margin:4px 0 0;color:#856404;font-size:13px;}
+.locked-badge{background:#fff3cd;border:1px solid #f0ad4e;border-radius:8px;padding:8px 10px;font-size:12px;color:#856404;font-weight:600;display:inline-block;margin-bottom:4px;}
+{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div>
+    <h1>My Missions</h1>
+    <p>Manage and track all your delivery missions</p>
+  </div>
+</div>
+
+{% if accepted_offers_count %}
+<div style="margin:0 20px 16px;background:#e8f5e9;border:2px solid #2e8b42;border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:12px;">
+  <span style="font-size:24px;">🎉</span>
+  <div>
+    <strong style="color:#1b5e20;font-size:14px;">تم قبول {{ accepted_offers_count }} من عروضك من طرف الـ Buyer!</strong>
+    <p style="margin:3px 0 0;color:#2e7d32;font-size:12px;">المهام المُسنَّدة لك ظاهرة أدناه — ابدأ التوصيل.</p>
+  </div>
+</div>
+{% endif %}
+
+{% if rejected_offers_count %}
+<div style="margin:0 20px 16px;background:#fce4ec;border:2px solid #e91e63;border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:12px;">
+  <span style="font-size:24px;">❌</span>
+  <div>
+    <strong style="color:#880e4f;font-size:14px;">رفض الـ Buyer {{ rejected_offers_count }} من عروضك.</strong>
+    <p style="margin:3px 0 0;color:#ad1457;font-size:12px;">يمكنك تقديم سعر جديد على نفس المهام أدناه.</p>
+  </div>
+</div>
+{% endif %}
+
+{% if has_active_mission %}
+<div class="active-mission-banner">
+  <span class="icon">🔒</span>
+  <div class="text">
+    <strong> You have an active task in progress.</strong>
+    <p>
+      missions<strong>#MSN-{{ active_mission.id }}</strong>
+      — {{ active_mission.get_status_display }}
+      &nbsp;|&nbsp; {{ active_mission.pickup_location }} ← {{ active_mission.delivery_location }}
+      <br>Complete this missions first before accepting any new missions.
+    </p>
+  </div>
+</div>
+{% endif %}
+
+<div class="stats-row">
+  <div class="stat-card active-filter" onclick="filterByCard('all',this)"><h4>Total</h4><p>{{ total_missions }}</p></div>
+  <div class="stat-card orange" onclick="filterByCard('pending',this)"><h4>Pending</h4><p>{{ pending_count }}</p></div>
+  <div class="stat-card blue" onclick="filterByCard('progress',this)"><h4>In Progress</h4><p>{{ progress_count }}</p></div>
+  <div class="stat-card" onclick="filterByCard('delivered',this)"><h4>Delivered</h4><p>{{ delivered_count }}</p></div>
+</div>
+
+<div class="filter-bar">
+  <input type="text" id="searchInput" placeholder="🔍 Search mission, product, city...">
+  <select id="statusFilter">
+    <option value="all">All Status</option>
+    <option value="pending">Pending</option>
+    <option value="assigned">Assigned</option>
+    <option value="in_transit">In Transit</option>
+    <option value="delivered">Delivered</option>
+    <option value="declined">Declined</option>
+  </select>
+</div>
+
+<div class="table-container">
+  <div class="table-header">
+    <h3>📋 Missions List</h3>
+    <span style="font-size:13px;color:#777;" id="resultCount">Showing {{ deliveries|length }} missions</span>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Mission ID</th><th>Pickup</th><th>Delivery</th><th>Product</th><th>Qty</th><th>Status</th><th>Actions</th></tr>
+    </thead>
+    <tbody id="missionsBody">
+      {% for d in deliveries %}
+      <tr data-status="{{ d.status }}">
+        <td><strong>#MSN-{{ d.id }}</strong></td>
+        <td>{{ d.pickup_location }}</td>
+        <td>
+          <div style="font-size:12px;line-height:1.6;">
+            <div><strong>{{ d.order.shipping_wilaya }}</strong></div>
+            <div style="color:#666;">{{ d.order.shipping_address }}</div>
+            <div>📞 {{ d.order.shipping_phone }}</div>
+          </div>
+        </td>
+        <td>{% for item in d.order.items.all %}{{ item.product.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+        <td>{% for item in d.order.items.all %}{{ item.quantity_kg }}kg{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+        <td>
+          {% if d.status == 'pending' %}<span class="badge b-pending">⏳ Open</span>
+          {% elif d.status == 'assigned' %}<span class="badge b-progress">🔵 Assigned</span>
+          {% elif d.status == 'in_transit' %}<span class="badge b-transit">🚚 In Transit</span>
+          {% elif d.status == 'delivered' %}<span class="badge b-delivered">✅ Delivered</span>
+          {% elif d.status == 'waiting' %}<span class="badge" style="background:#fff3e0;color:#e65100;">⏳ Waiting Farmer</span>
+          {% else %}<span class="badge b-declined">❌ Declined</span>{% endif %}
+        </td>
+        <td>
+
+          {# ── Open missions: accept / decline ────────────────────────── #}
+          {% if d.status == 'pending' %}
+
+            {% if has_active_mission %}
+              {# Transporter is busy — show lock message only #}
+              <span class="locked-badge">🔒 Complete your current task first.</span>
+
+            {% else %}
+              {# Free to submit offer — show price input + status of my_offer #}
+              <div style="margin-bottom:8px;display:flex;gap:6px;align-items:center;">
+                <input type="number" id="price-{{ d.id }}" min="1" step="50"
+                  value="{% if d.my_offer %}{{ d.my_offer.proposed_price }}{% endif %}"
+                  placeholder="سعر الشحن DA"
+                  style="width:130px;padding:6px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:12px;outline:none;">
+                <button onclick="setShippingPrice({{ d.id }})"
+                  style="background:#1e4620;color:white;border:none;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;">
+                  💰 إرسال
+                </button>
+              </div>
+
+              {# حالة عرض هذا الناقل #}
+              <div id="price-status-{{ d.id }}" style="font-size:11px;margin-bottom:6px;font-weight:600;">
+                {% if d.my_offer %}
+                  {% if d.my_offer.status == 'accepted' %}
+                    <span style="color:#2e8b42;">✅ عرضك {{ d.my_offer.proposed_price }} DA — تم القبول من الـ Buyer!</span>
+                  {% elif d.my_offer.status == 'rejected' %}
+                    <span style="color:#b91c1c;">❌ تم رفض عرضك {{ d.my_offer.proposed_price }} DA — أرسل عرضاً جديداً</span>
+                  {% else %}
+                    <span style="color:#e65100;">⏳ عرضك {{ d.my_offer.proposed_price }} DA — في انتظار موافقة الـ Buyer</span>
+                  {% endif %}
+                {% else %}
+                  <span style="color:#aaa;">لم ترسل عرضاً بعد</span>
+                {% endif %}
+              </div>
+
+              {# زر Decline يعمل دائماً بغض النظر عن حالة العرض #}
+              <form method="post" action="{% url 'transporter_mission_action' d.id %}" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="decline">
+                <button type="submit" class="btn btn-decline">❌ سحب العرض</button>
+              </form>
+            {% endif %}
+
+          {# ── Assigned (my mission) ───────────────────────────────── #}
+          {% elif d.status == 'assigned' %}
+          <div style="font-size:12px;color:#1e4620;font-weight:600;margin-bottom:6px;">
+            💰 Shipping: {{ d.shipping_price }} DA
+          </div>
+          <form method="post" action="{% url 'transporter_mission_action' d.id %}" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="in_transit">
+            <button type="submit" class="btn btn-accept">▶ Start Transit</button>
+          </form>
+
+          {# ── In Transit (my mission) ──────────────────────────────── #}
+          {% elif d.status == 'in_transit' %}
+          <div style="font-size:12px;color:#1e4620;font-weight:600;margin-bottom:6px;">
+            💰 Shipping: {{ d.shipping_price }} DA
+          </div>
+          <form method="post" action="{% url 'transporter_mission_action' d.id %}" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delivered">
+            <button type="submit" class="btn btn-accept">✅ Mark Delivered</button>
+          </form>
+          {% endif %}
+
+          <button class="btn btn-details"
+            onclick="openDetails('{{ d.id }}','{{ d.pickup_location }}','{{ d.delivery_location }}','{% for item in d.order.items.all %}{{ item.product.name }}{% if not forloop.last %}, {% endif %}{% endfor %}','{{ d.status }}','{{ d.order.farmer.username }}','{{ d.order.buyer.username }}')">
+            📋 Details
+          </button>
+
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px;">No missions assigned yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="no-result" id="noResult"><p style="font-size:36px;">🔍</p><p style="margin-top:10px;">No missions found.</p></div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal-bg" id="detailsModal">
+  <div class="modal">
+    <h3>📋 Mission Details</h3>
+    <div class="modal-row"><span>Mission ID</span><strong id="d-id"></strong></div>
+    <div class="modal-row"><span>Pickup Location</span><strong id="d-from"></strong></div>
+    <div class="modal-row"><span>Delivery Location</span><strong id="d-to"></strong></div>
+    <div class="modal-row"><span>Product</span><strong id="d-product"></strong></div>
+    <div class="modal-row"><span>Status</span><strong id="d-status"></strong></div>
+    <div class="modal-section">
+      <h4>👥 Parties Involved</h4>
+      <div style="display:flex;justify-content:space-between;margin-top:5px;">
+        <span>🌾 Farmer: <strong id="d-farmer"></strong></span>
+        <span>🛒 Buyer: <strong id="d-buyer"></strong></span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-close" onclick="closeModals()">Close</button>
+      <a href="{% url 'transporter_messages' %}" class="btn btn-msg" style="padding:9px 20px;text-decoration:none;">💬 Message</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const HAS_ACTIVE_MISSION = {{ has_active_mission|yesno:"true,false" }};
+
+let cardFilter = 'all';
+function filterByCard(f, card) {
+  cardFilter = f;
+  document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active-filter'));
+  card.classList.add('active-filter');
+  applyFilters();
+}
+function applyFilters() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const s = document.getElementById('statusFilter').value;
+  const rows = document.querySelectorAll('#missionsBody tr');
+  let v = 0;
+  rows.forEach(r => {
+    const rs = r.dataset.status;
+    const cardOk = cardFilter === 'all'
+      || (cardFilter === 'pending' && rs === 'pending')
+      || (cardFilter === 'progress' && (rs === 'assigned' || rs === 'in_transit'))
+      || (cardFilter === 'delivered' && rs === 'delivered');
+    const show = cardOk && (q === '' || r.textContent.toLowerCase().includes(q)) && (s === 'all' || rs === s);
+    r.style.display = show ? '' : 'none';
+    if (show) v++;
+  });
+  document.getElementById('resultCount').textContent = 'Showing ' + v + ' mission' + (v !== 1 ? 's' : '');
+  document.getElementById('noResult').style.display = v === 0 ? 'block' : 'none';
+}
+document.getElementById('searchInput').addEventListener('keyup', applyFilters);
+document.getElementById('statusFilter').addEventListener('change', applyFilters);
+
+function openDetails(id, from, to, product, status, farmer, buyer) {
+  document.getElementById('d-id').textContent = '#MSN-' + id;
+  document.getElementById('d-from').textContent = from;
+  document.getElementById('d-to').textContent = to;
+  document.getElementById('d-product').textContent = product;
+  document.getElementById('d-status').textContent = status;
+  document.getElementById('d-farmer').textContent = farmer;
+  document.getElementById('d-buyer').textContent = buyer;
+  document.getElementById('detailsModal').classList.add('open');
+}
+
+function getCsrf() {
+  return document.cookie.split(';').find(c => c.trim().startsWith('csrftoken=')).split('=')[1];
+}
+
+async function setShippingPrice(deliveryId) {
+  // Block on the client side too
+  if (HAS_ACTIVE_MISSION) {
+    alert('🔒 You have a missions. Complete your current task before accepting a new one.');
+    return;
+  }
+  const input = document.getElementById('price-' + deliveryId);
+  const price = parseFloat(input.value);
+  if (!price || price <= 0) {
+    alert('Please enter a valid shipping price.');
+    return;
+  }
+  try {
+    const res = await fetch(`/transporter/missions/${deliveryId}/set-price/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+      body: JSON.stringify({ shipping_price: price }),
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      document.getElementById('price-status-' + deliveryId).textContent =
+        '⏳ Price ' + data.price + ' DA — waiting for buyer approval...';
+    } else {
+      alert(data.msg || 'Error setting price');
+    }
+  } catch (e) {
+    alert('Network error');
+  }
+}
+</script>
+{% endblock %}

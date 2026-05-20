@@ -1,0 +1,143 @@
+{% extends 'buyer_base.html' %}
+{% block title %}Compare Prices{% endblock %}
+{% block topbar_title %}⚖ Compare Prices{% endblock %}
+
+{% block extra_style %}
+.search-bar{display:flex;gap:10px;margin:0 20px 15px;flex-wrap:wrap;}
+.search-bar input{flex:1;min-width:200px;padding:10px 16px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none;transition:0.3s;}
+.search-bar input:focus{border-color:#2e8b42;}
+.search-bar select{padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none;background:white;}
+.search-bar button{background:#2e8b42;color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;}
+.sellers{display:flex;flex-direction:column;gap:16px;margin:20px;}
+.seller-card{background:white;border-radius:14px;padding:22px;box-shadow:0 5px 15px rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;transition:0.3s;position:relative;}
+.seller-card:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(0,0,0,0.12);}
+.seller-card.best{border:2px solid #2e8b42;}
+.best-badge{position:absolute;top:-12px;left:20px;background:#2e8b42;color:white;font-size:12px;font-weight:bold;padding:4px 14px;border-radius:20px;}
+.seller-left{display:flex;align-items:center;gap:16px;flex:1;}
+.seller-avatar{width:50px;height:50px;border-radius:50%;border:2px solid #e8f5e9;}
+.seller-info h4{color:#1e4620;font-size:15px;margin-bottom:4px;}
+.seller-info p{color:#777;font-size:12px;margin-bottom:3px;}
+.stars{color:#f0ad4e;font-size:13px;}
+.seller-actions{display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
+.price-block{text-align:right;}
+.price{font-size:24px;font-weight:bold;color:#1e4620;}
+.price-per{font-size:12px;color:#777;}
+.seller-btns{display:flex;gap:8px;}
+.select-btn{background:#2e8b42;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;}
+.cart-btn{background:#e8f5e9;color:#2e7d32;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;}
+.product-card-cmp{background:white;border-radius:12px;padding:20px;margin:0 20px 15px;box-shadow:0 4px 14px rgba(0,0,0,0.07);display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
+.product-card-cmp img{width:120px;height:80px;border-radius:10px;object-fit:cover;}
+.product-card-cmp h2{color:#1e4620;font-size:18px;margin-bottom:5px;}
+.product-card-cmp p{color:#777;font-size:13px;}
+.tag{background:#f0f2f5;color:#555;padding:3px 10px;border-radius:20px;font-size:11px;margin-right:5px;}
+.tag.organic{background:#e8f5e9;color:#2e7d32;}
+.no-result{text-align:center;padding:50px;color:#aaa;display:none;}
+.dark .seller-card,.dark .product-card-cmp{background:#1e1e1e;}
+.dark .seller-info h4{color:#88d982;}
+.dark .seller-info p{color:#aaa;}
+.dark .price{color:#88d982;}
+.dark .cart-btn{background:#1a3320;color:#88d982;}
+{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="header-left">
+    <h1>Smart Price Comparison</h1>
+    <p>Choose the best farmer based on price, rating, and stock availability</p>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><h4>Farmers Available</h4><p>{{ farmers_count }}</p></div>
+  <div class="stat-card"><h4>Products Listed</h4><p>{{ products|length }}</p></div>
+  <div class="stat-card orange"><h4>Cheapest Price</h4><p>{% if cheapest %}{{ cheapest.price_per_kg }} DA{% else %}—{% endif %}</p></div>
+  <div class="stat-card blue"><h4>Avg Price</h4><p>{% if avg_price %}{{ avg_price|floatformat:0 }} DA{% else %}—{% endif %}</p></div>
+</div>
+
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="🔍 Search product or farm...">
+  <select id="catFilter">
+    <option value="all">All Categories</option>
+    {% for cat in categories %}
+    <option value="{{ cat.name }}">{{ cat.name }}</option>
+    {% endfor %}
+  </select>
+  <select id="sortFilter">
+    <option value="price">💰 Sort by Price</option>
+    <option value="qty">📦 Sort by Stock</option>
+  </select>
+  <button onclick="applyFilters()">Search</button>
+</div>
+
+<div class="sellers" id="sellersList">
+  {% for product in products %}
+  <div class="seller-card {% if forloop.first %}best{% endif %}"
+       data-price="{{ product.price_per_kg }}"
+       data-name="{{ product.name|lower }}"
+       data-cat="{{ product.category.name }}"
+       data-qty="{{ product.quantity_kg }}">
+    {% if forloop.first %}<span class="best-badge">🏆 Best Price</span>{% endif %}
+    <div class="seller-left">
+      <img class="seller-avatar" src="https://cdn-icons-png.flaticon.com/512/4128/4128349.png" alt="farm">
+      <div class="seller-info">
+        <h4>🌱 {{ product.farm.name }}</h4>
+        <p>📍 {{ product.farm.location }} &nbsp;|&nbsp; 📦 {{ product.quantity_kg }} Kg available</p>
+        <p style="color:#777;font-size:12px;margin-top:2px;">{{ product.name }} — {{ product.category.name }}</p>
+        <div class="stars">★★★★☆ <span style="color:#555;font-size:12px;">{{ product.farm.name }}</span></div>
+      </div>
+    </div>
+    <div class="seller-actions">
+      <div class="price-block">
+        <div class="price">{{ product.price_per_kg }} DA</div>
+        <div class="price-per">per Kg</div>
+      </div>
+      <div class="seller-btns">
+        <form method="post" action="{% url 'place_order' product.id %}" style="display:inline;">
+          {% csrf_token %}
+          <input type="hidden" name="quantity_kg" value="1">
+          <button type="submit" class="select-btn">✅ Order 1kg</button>
+        </form>
+        <button class="cart-btn" onclick="showToast('🛒 Added from {{ product.farm.name }}!')">🛒 Cart</button>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div style="text-align:center;padding:50px;color:#aaa;">
+    <p style="font-size:40px;">⚖</p>
+    <p style="margin-top:10px;">No products available to compare.</p>
+  </div>
+  {% endfor %}
+  <div class="no-result" id="noResult">
+    <p style="font-size:36px;">🔍</p>
+    <p style="margin-top:10px;">No results found.</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function applyFilters() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const cat = document.getElementById('catFilter').value;
+  const sort = document.getElementById('sortFilter').value;
+  let cards = Array.from(document.querySelectorAll('#sellersList .seller-card'));
+  let visible = 0;
+  cards.forEach(card => {
+    const matchQ = q === '' || card.dataset.name.includes(q) || card.textContent.toLowerCase().includes(q);
+    const matchC = cat === 'all' || card.dataset.cat === cat;
+    const show = matchQ && matchC;
+    card.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  const list = document.getElementById('sellersList');
+  cards.sort((a, b) => sort === 'price'
+    ? parseFloat(a.dataset.price) - parseFloat(b.dataset.price)
+    : parseFloat(b.dataset.qty) - parseFloat(a.dataset.qty));
+  cards.forEach(c => list.appendChild(c));
+  document.getElementById('noResult').style.display = visible === 0 ? 'block' : 'none';
+}
+document.getElementById('searchInput').addEventListener('keyup', applyFilters);
+document.getElementById('catFilter').addEventListener('change', applyFilters);
+document.getElementById('sortFilter').addEventListener('change', applyFilters);
+</script>
+{% endblock %}

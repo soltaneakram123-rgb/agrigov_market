@@ -1,0 +1,152 @@
+{% extends 'ministry/ministry_base.html' %}
+{% block title %}Market Prices{% endblock %}
+{% block topbar_title %}💰 Official Market Prices{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>💰 Market Prices</h1>
+    <p>Set and manage official agricultural product prices</p>
+  </div>
+  <div class="header-actions">
+    <button class="hbtn" onclick="openAddModal()">+ Set Price</button>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><h4>Total Price Entries</h4><p>{{ total }}</p></div>
+  <div class="stat-card teal"><h4>Currently Active</h4><p>{{ active_count }}</p></div>
+</div>
+
+<div class="table-card">
+  <div class="table-card-header">
+    <h3>Official Prices</h3>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Category</th><th>Price / kg</th><th>Valid From</th><th>Valid To</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for p in prices %}
+        <tr>
+          <td><strong>{{ p.category.name }}</strong></td>
+          <td><strong>{{ p.price_per_kg }} DA/kg</strong></td>
+          <td>{{ p.valid_from }}</td>
+          <td>{{ p.valid_to }}</td>
+          <td>
+            {% if p.valid_from <= today and p.valid_to >= today %}
+            <span class="badge badge-green">✓ Active</span>
+            {% elif p.valid_to < today %}
+            <span class="badge badge-grey">Expired</span>
+            {% else %}
+            <span class="badge badge-blue">Upcoming</span>
+            {% endif %}
+          </td>
+          <td style="white-space:nowrap;">
+            <button class="btn btn-info" onclick='openEditModal({{ p.id }}, {{ p.price_per_kg }}, "{{ p.valid_from }}", "{{ p.valid_to }}")'>Edit</button>
+            <button class="btn btn-danger" onclick="deletePrice({{ p.id }})">Delete</button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align:center;color:#aaa;padding:40px;">No prices set yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add Modal -->
+<div class="modal-bg" id="addModal">
+  <div class="modal">
+    <h3>➕ Set Official Price</h3>
+    <div class="modal-field">
+      <label>Category *</label>
+      <select id="addCat">
+        <option value="">Select category…</option>
+        {% for cat in categories %}
+        <option value="{{ cat.id }}">{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>Price per kg (DA) *</label>
+      <input type="number" id="addPrice" min="0" step="0.01" placeholder="e.g. 150.00">
+    </div>
+    <div class="modal-field">
+      <label>Valid From *</label>
+      <input type="date" id="addFrom">
+    </div>
+    <div class="modal-field">
+      <label>Valid To *</label>
+      <input type="date" id="addTo">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('addModal')">Cancel</button>
+      <button class="modal-save" onclick="saveAdd()">Set Price</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <h3>✏️ Edit Price</h3>
+    <input type="hidden" id="editId">
+    <div class="modal-field">
+      <label>Price per kg (DA) *</label>
+      <input type="number" id="editPrice" min="0" step="0.01">
+    </div>
+    <div class="modal-field">
+      <label>Valid From *</label>
+      <input type="date" id="editFrom">
+    </div>
+    <div class="modal-field">
+      <label>Valid To *</label>
+      <input type="date" id="editTo">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('editModal')">Cancel</button>
+      <button class="modal-save" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openAddModal() { document.getElementById('addModal').classList.add('open'); }
+function openEditModal(id, price, from, to) {
+  document.getElementById('editId').value = id;
+  document.getElementById('editPrice').value = price;
+  document.getElementById('editFrom').value = from;
+  document.getElementById('editTo').value = to;
+  document.getElementById('editModal').classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function saveAdd() {
+  const cat = document.getElementById('addCat').value;
+  const price = document.getElementById('addPrice').value;
+  const from = document.getElementById('addFrom').value;
+  const to = document.getElementById('addTo').value;
+  if (!cat || !price || !from || !to) { showToast('All fields required', false); return; }
+  const data = await apiPost('/ministry/prices/add/', {category_id: cat, price_per_kg: price, valid_from: from, valid_to: to});
+  if (data.status === 'ok') { showToast('Price set ✓'); setTimeout(() => location.reload(), 700); }
+}
+async function saveEdit() {
+  const id = document.getElementById('editId').value;
+  const data = await apiPost(`/ministry/prices/${id}/edit/`, {
+    price_per_kg: document.getElementById('editPrice').value,
+    valid_from: document.getElementById('editFrom').value,
+    valid_to: document.getElementById('editTo').value,
+  });
+  if (data.status === 'ok') { showToast('Price updated ✓'); setTimeout(() => location.reload(), 700); }
+}
+async function deletePrice(id) {
+  if (!confirm('Delete this price entry?')) return;
+  const data = await apiPost(`/ministry/prices/${id}/delete/`, {});
+  if (data.status === 'ok') { showToast('Deleted'); setTimeout(() => location.reload(), 700); }
+}
+</script>
+{% endblock %}

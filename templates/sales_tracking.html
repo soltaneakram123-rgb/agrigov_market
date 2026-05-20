@@ -1,0 +1,50 @@
+{% extends 'farmer_base.html' %}
+{% block title %}Sales Tracking{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="header-left">
+    <h1>📊 Sales Tracking</h1>
+    <p>Monitor your revenue and delivery status</p>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><h4>Total Revenue</h4><p>{{ total_revenue|floatformat:0 }} DA</p></div>
+  <div class="stat-card blue"><h4>Total Orders</h4><p>{{ total_orders }}</p></div>
+  <div class="stat-card orange"><h4>Pending</h4><p>{{ pending_orders }}</p></div>
+  <div class="stat-card"><h4>Delivered</h4><p>{{ delivered_orders }}</p></div>
+</div>
+
+<div class="table-container">
+  <div class="table-header">
+    <h3>📋 Sales History</h3>
+    <span style="font-size:13px;color:#777;">{{ orders|length }} records</span>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Order #</th><th>Buyer</th><th>Products</th><th>Amount</th><th>Date</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      {% for order in orders %}
+      <tr>
+        <td><strong>#{{ order.id }}</strong></td>
+        <td>{{ order.buyer.username }}</td>
+        <td>{% for item in order.items.all %}{{ item.product.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+        <td><strong>{{ order.total_amount }} DA</strong></td>
+        <td>{{ order.created_at|date:"d M Y" }}</td>
+        <td>
+          {% if order.status == 'pending' %}<span class="badge badge-pending">⏳ Pending</span>
+          {% elif order.status == 'confirmed' %}<span class="badge badge-confirmed">✅ Confirmed</span>
+          {% elif order.status == 'in_transit' %}<span class="badge badge-transit">🚚 In Transit</span>
+          {% elif order.status == 'delivered' %}<span class="badge badge-delivered">📦 Delivered</span>
+          {% else %}<span class="badge badge-rejected">❌ Cancelled</span>{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" style="text-align:center;color:#aaa;padding:30px;">No sales yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

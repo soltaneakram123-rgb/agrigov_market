@@ -1,0 +1,263 @@
+{% extends 'ministry/ministry_base.html' %}
+{% block title %}Manage Equipment{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2 style="margin:0;font-size:22px;">🚜 Manage Agricultural Equipment</h2>
+    <p style="margin:5px 0 0;opacity:.85;font-size:14px;">Add and edit equipment available to farmers</p>
+  </div>
+  <button class="btn btn-primary" onclick="openAddModal()" style="background:white;color:#1e4620;font-weight:600;padding:10px 22px;border:none;border-radius:10px;cursor:pointer;font-size:13px;">
+    ➕ Add New Equipment
+  </button>
+</div>
+
+<div style="display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap;">
+  <div class="stat-card"><h4>Total Equipment</h4><p>{{ equipments|length }}</p></div>
+  <div class="stat-card blue"><h4>Active</h4>
+    <p>{% with cnt=0 %}{% for e in equipments %}{% if e.is_active %}{{ forloop.counter }}{% endif %}{% endfor %}{% endwith %}</p>
+  </div>
+</div>
+
+<div class="controls-bar">
+  <input type="text" id="searchInput" placeholder="🔍 Search equipment..." oninput="filterTable()">
+  <select id="catFilter" onchange="filterTable()">
+    <option value="">All Types</option>
+    {% for val, label in categories %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+  </select>
+</div>
+
+<div class="table-card">
+  <div class="table-card-header">
+    <h3>📋 Equipment List</h3>
+    <span id="countLabel" style="font-size:13px;color:#777;">{{ equipments|length }} items</span>
+  </div>
+  <table id="eqTable">
+    <thead>
+      <tr>
+        <th>Image</th>
+        <th>Name (EN / AR)</th>
+        <th>Type</th>
+        <th>Price / Day</th>
+        <th>Qty</th>
+        <th>In Use</th>
+        <th>Wilaya</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for eq in equipments %}
+      <tr data-name="{{ eq.name|lower }} {{ eq.name_ar|lower }}" data-cat="{{ eq.category }}">
+        <td>
+          {% if eq.image_url %}
+            <img src="{{ eq.image_url }}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'">
+          {% else %}
+            <div style="width:48px;height:48px;border-radius:8px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:24px;">
+              {% if eq.category == 'tractor' %}🚜{% elif eq.category == 'harvester' %}🌾{% elif eq.category == 'plow' %}🔧{% elif eq.category == 'sprayer' %}💧{% elif eq.category == 'seeder' %}🌱{% elif eq.category == 'irrigation' %}🚿{% elif eq.category == 'baler' %}🌀{% else %}🛠{% endif %}
+            </div>
+          {% endif %}
+        </td>
+        <td>
+          <strong>{{ eq.name }}</strong>
+          {% if eq.name_ar %}<br><span style="font-size:12px;color:#888;direction:rtl;">{{ eq.name_ar }}</span>{% endif %}
+          {% if eq.description %}<br><span style="font-size:11px;color:#aaa;">{{ eq.description|truncatechars:40 }}</span>{% endif %}
+        </td>
+        <td>{{ eq.get_category_display }}</td>
+        <td><strong style="color:#1565c0;">{{ eq.price_per_day }} DA</strong></td>
+        <td><strong style="color:#2e8b42;">{{ eq.quantity_available }}</strong></td>
+        <td>{{ eq.requests.count }}</td>
+        <td>{% if eq.wilaya %}<span style="background:#f5f5f5;padding:2px 8px;border-radius:10px;font-size:12px;">{{ eq.wilaya }}</span>{% else %}—{% endif %}</td>
+        <td>
+          {% if eq.is_active %}
+            <span style="background:#d4edda;color:#155724;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">✅ Active</span>
+          {% else %}
+            <span style="background:#f8d7da;color:#721c24;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">❌ Inactive</span>
+          {% endif %}
+        </td>
+        <td>
+          <button onclick="openEditModal({{ eq.id }},'{{ eq.name|escapejs }}','{{ eq.name_ar|escapejs }}','{{ eq.category }}','{{ eq.description|escapejs }}','{{ eq.image_url|escapejs }}',{{ eq.quantity_available }},{{ eq.price_per_day }},'{{ eq.wilaya|escapejs }}',{{ eq.is_active|yesno:'true,false' }})"
+            style="background:#e3f2fd;color:#1565c0;border:none;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;margin-right:4px;">✏️ Edit</button>
+          <button onclick="deleteEquipment({{ eq.id }},'{{ eq.name|escapejs }}')"
+            style="background:#fce4ec;color:#880e4f;border:none;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">🗑 Delete</button>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="9" style="text-align:center;color:#aaa;padding:40px;">No equipment yet. Click "Add New Equipment" to get started.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Add Modal -->
+<div class="modal-bg" id="addModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;">
+  <div class="modal" style="background:white;border-radius:14px;padding:28px;width:540px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.2);">
+    <h3 style="margin:0 0 20px;font-size:17px;color:#1e4620;">➕ Add New Equipment</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Name (English) *</label>
+        <input type="text" id="a-name" placeholder="e.g. John Deere Tractor" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
+      <div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Name (Arabic)</label>
+        <input type="text" id="a-name-ar" placeholder="مثال: جرار جون ديري" dir="rtl" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
+    </div>
+    <div style="margin-top:12px;"><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Type *</label>
+      <select id="a-cat" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;">
+        {% for val, label in categories %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+      </select></div>
+    <div style="margin-top:12px;"><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Description</label>
+      <textarea id="a-desc" rows="2" placeholder="Optional description..." style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box;"></textarea></div>
+    <div style="margin-top:12px;"><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Image URL</label>
+      <input type="url" id="a-img" placeholder="https://..." style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px;">
+      <div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Quantity *</label>
+        <input type="number" id="a-qty" min="1" value="1" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
+      <div><label style="font-size:12px;font-weight:600;color:#1565c0;display:block;margin-bottom:4px;">💰 Price / Day (DA) *</label>
+        <input type="number" id="a-price" min="0" step="0.01" value="0" style="width:100%;padding:9px 12px;border:2px solid #1565c0;border-radius:8px;font-size:13px;box-sizing:border-box;font-weight:600;"></div>
+      <div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Wilaya</label>
+        <input type="text" id="a-wilaya" placeholder="e.g. Algiers" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
+    </div>
+    <div style="margin-top:12px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:#555;">
+        <input type="checkbox" id="a-active" checked> Active (visible to farmers)
+      </label>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button onclick="closeModals()" style="flex:1;padding:10px;background:#f5f5f5;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Cancel</button>
+      <button onclick="submitAdd()" style="flex:1;padding:10px;background:#2e8b42;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">💾 Save Equipment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-bg" id="editModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;">
+  <div class="modal" style="background:white;border-radius:14px;padding:28px;width:540px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.2);">
+    <h3 style="margin:0 0 20px;font-size:17px;color:#1e4620;">✏️ Edit Equipment</h3>
+    <input type="hidden" id="e-id">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Name (English) *</label>
+        <input type="text" id="e-name" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
+      <div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Name (Arabic)</label>
+        <input type="text" id="e-name-ar" dir="rtl" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
+    </div>
+    <div style="margin-top:12px;"><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Type *</label>
+      <select id="e-cat" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;">
+        {% for val, label in categories %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+      </select></div>
+    <div style="margin-top:12px;"><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Description</label>
+      <textarea id="e-desc" rows="2" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box;"></textarea></div>
+    <div style="margin-top:12px;"><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Image URL</label>
+      <input type="url" id="e-img" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px;">
+      <div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Quantity *</label>
+        <input type="number" id="e-qty" min="1" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
+      <div><label style="font-size:12px;font-weight:600;color:#1565c0;display:block;margin-bottom:4px;">💰 Price / Day (DA) *</label>
+        <input type="number" id="e-price" min="0" step="0.01" style="width:100%;padding:9px 12px;border:2px solid #1565c0;border-radius:8px;font-size:13px;box-sizing:border-box;font-weight:600;"></div>
+      <div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Wilaya</label>
+        <input type="text" id="e-wilaya" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
+    </div>
+    <div style="margin-top:12px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:#555;">
+        <input type="checkbox" id="e-active"> Active
+      </label>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button onclick="closeModals()" style="flex:1;padding:10px;background:#f5f5f5;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Cancel</button>
+      <button onclick="submitEdit()" style="flex:1;padding:10px;background:#1565c0;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" style="position:fixed;bottom:30px;right:30px;background:#1e4620;color:white;padding:14px 22px;border-radius:10px;font-size:14px;font-weight:bold;display:none;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.3);"></div>
+
+<script>
+function getCsrf(){return document.cookie.split(';').find(c=>c.trim().startsWith('csrftoken=')).split('=')[1];}
+function showToast(msg,ok=true){const t=document.getElementById('toast');t.textContent=msg;t.style.background=ok?'#1e4620':'#c62828';t.style.display='block';setTimeout(()=>t.style.display='none',2500);}
+function openAddModal(){document.getElementById('addModal').style.display='flex';}
+function openEditModal(id,name,nameAr,cat,desc,img,qty,price,wilaya,active){
+  document.getElementById('e-id').value=id;
+  document.getElementById('e-name').value=name;
+  document.getElementById('e-name-ar').value=nameAr;
+  document.getElementById('e-cat').value=cat;
+  document.getElementById('e-desc').value=desc;
+  document.getElementById('e-img').value=img;
+  document.getElementById('e-qty').value=qty;
+  document.getElementById('e-price').value=price;
+  document.getElementById('e-wilaya').value=wilaya;
+  document.getElementById('e-active').checked=active;
+  document.getElementById('editModal').style.display='flex';
+}
+function closeModals(){
+  document.getElementById('addModal').style.display='none';
+  document.getElementById('editModal').style.display='none';
+}
+['addModal','editModal'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target.id===id)closeModals();}));
+
+async function submitAdd(){
+  const name=document.getElementById('a-name').value.trim();
+  if(!name){alert('Please enter the equipment name (English).');return;}
+  const price=parseFloat(document.getElementById('a-price').value)||0;
+  if(price<0){alert('Price cannot be negative.');return;}
+  const res=await fetch("{% url 'ministry_equipment_add' %}",{
+    method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf()},
+    body:JSON.stringify({
+      name,name_ar:document.getElementById('a-name-ar').value,
+      category:document.getElementById('a-cat').value,
+      description:document.getElementById('a-desc').value,
+      image_url:document.getElementById('a-img').value,
+      quantity_available:parseInt(document.getElementById('a-qty').value)||1,
+      price_per_day:price,
+      wilaya:document.getElementById('a-wilaya').value,
+      is_active:document.getElementById('a-active').checked,
+    })
+  });
+  const data=await res.json();
+  if(data.status==='ok'){showToast('✅ Equipment added successfully');closeModals();setTimeout(()=>location.reload(),900);}
+  else showToast('❌ Error: '+(data.msg||'Unknown error'),false);
+}
+
+async function submitEdit(){
+  const id=document.getElementById('e-id').value;
+  const name=document.getElementById('e-name').value.trim();
+  if(!name){alert('Please enter the equipment name (English).');return;}
+  const price=parseFloat(document.getElementById('e-price').value)||0;
+  if(price<0){alert('Price cannot be negative.');return;}
+  const res=await fetch(`/ministry/equipment/${id}/edit/`,{
+    method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf()},
+    body:JSON.stringify({
+      name,name_ar:document.getElementById('e-name-ar').value,
+      category:document.getElementById('e-cat').value,
+      description:document.getElementById('e-desc').value,
+      image_url:document.getElementById('e-img').value,
+      quantity_available:parseInt(document.getElementById('e-qty').value)||1,
+      price_per_day:price,
+      wilaya:document.getElementById('e-wilaya').value,
+      is_active:document.getElementById('e-active').checked,
+    })
+  });
+  const data=await res.json();
+  if(data.status==='ok'){showToast('✅ Changes saved');closeModals();setTimeout(()=>location.reload(),900);}
+  else showToast('❌ Error: '+(data.msg||'Unknown error'),false);
+}
+
+async function deleteEquipment(id,name){
+  if(!confirm(`Delete "${name}"?\nAll related requests will also be removed.`))return;
+  const res=await fetch(`/ministry/equipment/${id}/delete/`,{method:'POST',headers:{'X-CSRFToken':getCsrf()}});
+  const data=await res.json();
+  if(data.status==='ok'){showToast('🗑 Deleted');setTimeout(()=>location.reload(),900);}
+  else showToast('❌ Error',false);
+}
+
+function filterTable(){
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  const cat=document.getElementById('catFilter').value;
+  let count=0;
+  document.querySelectorAll('#eqTable tbody tr').forEach(r=>{
+    if(!r.dataset.name)return;
+    const mq=!q||r.dataset.name.includes(q);
+    const mc=!cat||r.dataset.cat===cat;
+    r.style.display=(mq&&mc)?'':'none';
+    if(mq&&mc)count++;
+  });
+  document.getElementById('countLabel').textContent=count+' items';
+}
+</script>
+{% endblock %}

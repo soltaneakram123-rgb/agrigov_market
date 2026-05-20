@@ -1,0 +1,143 @@
+{% extends 'farmer_base.html' %}
+{% block title %}My Complaints{% endblock %}
+{% block topbar_title %}⚠️ My Complaints{% endblock %}
+
+{% block extra_style %}
+.complaints-header {
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:24px;flex-wrap:wrap;gap:12px;
+}
+.status-badge {
+  display:inline-block;padding:4px 12px;border-radius:20px;
+  font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+}
+.badge-open     { background:#fff3e0;color:#e65100; }
+.badge-in_review{ background:#e3f2fd;color:#1565c0; }
+.badge-resolved { background:#e8f5e9;color:#2e7d32; }
+.badge-rejected { background:#fee2e2;color:#b71c1c; }
+.complaint-card {
+  background:white;border-radius:14px;padding:20px 24px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:14px;
+  border-left:4px solid #e0e0e0;transition:box-shadow .2s;
+}
+.complaint-card:hover { box-shadow:0 4px 20px rgba(0,0,0,0.1); }
+.complaint-card.open      { border-left-color:#f59e0b; }
+.complaint-card.in_review { border-left-color:#3b82f6; }
+.complaint-card.resolved  { border-left-color:#10b981; }
+.complaint-card.rejected  { border-left-color:#ef4444; }
+.complaint-subject { font-size:15px;font-weight:700;color:#1e4620;margin-bottom:6px; }
+.complaint-desc    { font-size:13px;color:#555;line-height:1.6;margin-bottom:10px; }
+.complaint-meta    { font-size:11px;color:#aaa;display:flex;gap:16px;flex-wrap:wrap; }
+.complaint-resolution {
+  margin-top:12px;padding:10px 14px;background:#f0f7f1;
+  border-radius:8px;font-size:13px;color:#2e7d32;
+  border-left:3px solid #2e8b42;
+}
+.modal-bg {
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);
+  z-index:999;align-items:center;justify-content:center;
+}
+.modal-bg.open { display:flex; }
+.modal {
+  background:white;border-radius:16px;padding:28px;
+  width:100%;max-width:520px;margin:20px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.2);
+}
+.modal h3 { font-size:17px;color:#1e4620;margin-bottom:20px; }
+.modal-field { margin-bottom:16px; }
+.modal-field label { display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:6px; }
+.modal-field input, .modal-field textarea, .modal-field select {
+  width:100%;padding:10px 14px;border:1.5px solid #ddd;border-radius:10px;
+  font-size:13px;font-family:inherit;outline:none;transition:.2s;
+}
+.modal-field input:focus, .modal-field textarea:focus { border-color:#2e8b42; }
+.modal-field textarea { resize:vertical;min-height:100px; }
+.modal-actions { display:flex;gap:10px;justify-content:flex-end;margin-top:20px; }
+.modal-cancel { padding:9px 18px;background:#f0f0f0;color:#555;border:none;border-radius:8px;cursor:pointer;font-size:13px; }
+.modal-save   { padding:9px 20px;background:#2e8b42;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600; }
+{% endblock %}
+
+{% block content %}
+<div class="complaints-header">
+  <div>
+    <h1>⚠️ My Complaints</h1>
+    <p style="color:#888;font-size:13px;margin-top:4px;">Submit and track your complaints</p>
+  </div>
+  <button class="add-btn" onclick="document.getElementById('addComplaintModal').classList.add('open')">
+    + New Complaint
+  </button>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}
+  <div style="padding:12px 18px;border-radius:10px;margin-bottom:16px;font-size:13px;
+    {% if 'success' in msg.tags %}background:#e8f5e9;color:#2e7d32;border-left:4px solid #2e8b42;
+    {% else %}background:#fee2e2;color:#b71c1c;border-left:4px solid #ef4444;{% endif %}">
+    {{ msg }}
+  </div>
+  {% endfor %}
+{% endif %}
+
+<!-- Stats -->
+<div class="stats-row">
+  <div class="stat-card"><h4>Total</h4><p>{{ complaints|length }}</p></div>
+  <div class="stat-card orange"><h4>Open</h4><p>{{ open_count }}</p></div>
+  <div class="stat-card"><h4>Resolved</h4><p>{{ resolved_count }}</p></div>
+</div>
+
+<!-- Complaints List -->
+{% if complaints %}
+  {% for c in complaints %}
+  <div class="complaint-card {{ c.status }}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+      <div class="complaint-subject">{{ c.subject }}</div>
+      <span class="status-badge badge-{{ c.status }}">
+        {% if c.status == 'open' %}🟠 Open
+        {% elif c.status == 'in_review' %}🔵 In Review
+        {% elif c.status == 'resolved' %}🟢 Resolved
+        {% else %}🔴 Rejected{% endif %}
+      </span>
+    </div>
+    <div class="complaint-desc">{{ c.description }}</div>
+    <div class="complaint-meta">
+      <span>📅 {{ c.created_at|date:"d M Y, H:i" }}</span>
+      <span>#{{ c.id }}</span>
+    </div>
+    {% if c.resolution_note %}
+    <div class="complaint-resolution">
+      <strong>Admin Response:</strong> {{ c.resolution_note }}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% else %}
+  <div style="background:white;border-radius:14px;padding:60px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+    <div style="font-size:52px;margin-bottom:16px;">📋</div>
+    <h3 style="color:#1e4620;margin-bottom:8px;">No complaints yet</h3>
+    <p style="color:#aaa;margin-bottom:20px;">If you have an issue, click <strong>New Complaint</strong> to submit it.</p>
+    <button class="add-btn" onclick="document.getElementById('addComplaintModal').classList.add('open')">+ New Complaint</button>
+  </div>
+{% endif %}
+
+<!-- Add Complaint Modal -->
+<div class="modal-bg" id="addComplaintModal">
+  <div class="modal">
+    <h3>⚠️ Submit New Complaint</h3>
+    <form method="post" action="{% url 'submit_complaint' %}">
+      {% csrf_token %}
+      <div class="modal-field">
+        <label>Subject *</label>
+        <input type="text" name="subject" placeholder="Brief description of the issue" required maxlength="300">
+      </div>
+      <div class="modal-field">
+        <label>Description *</label>
+        <textarea name="description" placeholder="Describe your complaint in detail..." required></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="modal-cancel" onclick="document.getElementById('addComplaintModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="modal-save">Submit Complaint</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,215 @@
+{% extends 'ministry/ministry_base.html' %}
+{% block title %}Product Catalogue{% endblock %}
+{% block topbar_title %}📦 Product Catalogue{% endblock %}
+
+{% block extra_style %}
+.filter-bar{display:flex;gap:12px;align-items:center;margin:0 0 24px;flex-wrap:wrap;}
+.filter-bar input,.filter-bar select{padding:9px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:13px;outline:none;font-family:inherit;background:white;}
+.filter-bar input:focus,.filter-bar select:focus{border-color:#2e8b42;}
+
+.prod-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-top:4px;}
+.prod-card{background:white;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,0.07);overflow:hidden;border:1px solid #f0f0f0;transition:.25s;display:flex;flex-direction:column;}
+.prod-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,0.12);}
+.prod-card-img{width:100%;height:130px;object-fit:cover;background:#f5f7f3;display:flex;align-items:center;justify-content:center;font-size:44px;}
+.prod-card-img img{width:100%;height:130px;object-fit:cover;display:block;}
+.prod-card-body{padding:12px 14px;flex:1;display:flex;flex-direction:column;gap:6px;}
+.prod-card-name{font-size:14px;font-weight:600;color:#1e4620;}
+.prod-card-name-ar{font-size:13px;color:#777;direction:rtl;}
+.cat-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:#e8f5e9;color:#1e4620;}
+.prod-card-actions{display:flex;gap:6px;margin-top:auto;padding-top:10px;}
+.btn-edit-card{flex:1;padding:7px;background:#e3f2fd;color:#1565c0;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;}
+.btn-del-card{padding:7px 10px;background:#fce4ec;color:#880e4f;border:none;border-radius:8px;font-size:12px;cursor:pointer;}
+.btn-edit-card:hover{background:#bbdefb;}
+.btn-del-card:hover{background:#f8bbd0;}
+.empty-state{text-align:center;padding:80px 20px;color:#aaa;}
+.empty-state p:first-child{font-size:52px;margin-bottom:10px;}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>📦 Product Catalogue</h1>
+    <p>Manage the official list of agricultural products that farmers can sell</p>
+  </div>
+  <div class="header-actions">
+    <button class="hbtn" onclick="openAddModal()">+ Add Product</button>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><h4>Total Products</h4><p>{{ total }}</p></div>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar">
+  <form method="get" style="display:contents;">
+    <input type="text" name="q" value="{{ search }}" placeholder="🔍 Search name...">
+    <select name="category" onchange="this.form.submit()">
+      <option value="">All Categories</option>
+      {% for val, label in category_choices %}
+      <option value="{{ val }}" {% if current_category == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" style="padding:9px 18px;background:#2e8b42;color:white;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">Filter</button>
+    <a href="{% url 'ministry_catalogue' %}" style="padding:9px 14px;background:#f0f0f0;border-radius:10px;font-size:13px;text-decoration:none;color:#555;">Reset</a>
+  </form>
+</div>
+
+<!-- Grid -->
+{% if product_types %}
+<div class="prod-grid" id="prodGrid">
+  {% for pt in product_types %}
+  <div class="prod-card">
+    {% if pt.image_url %}
+      <div class="prod-card-img">
+        <img src="{{ pt.image_url }}" alt="{{ pt.name }}" onerror="this.parentElement.innerHTML='🌿';">
+      </div>
+    {% else %}
+      <div class="prod-card-img">🌿</div>
+    {% endif %}
+
+    <div class="prod-card-body">
+      <div class="prod-card-name">{{ pt.name }}</div>
+      {% if pt.name_ar %}<div class="prod-card-name-ar">{{ pt.name_ar }}</div>{% endif %}
+      <span class="cat-badge">{{ pt.get_category_display }}</span>
+
+      <div class="prod-card-actions">
+        <button class="btn-edit-card"
+          onclick='openEditModal({{ pt.id }},"{{ pt.name|escapejs }}","{{ pt.name_ar|escapejs }}","{{ pt.category }}","{{ pt.image_url|escapejs }}")'>
+          ✏️ Edit
+        </button>
+        <button class="btn-del-card"
+          onclick="deleteProductType({{ pt.id }},'{{ pt.name|escapejs }}')">
+          🗑
+        </button>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <p>🌾</p>
+  <p>No products in catalogue yet. Click <strong>+ Add Product</strong> to start.</p>
+</div>
+{% endif %}
+
+<!-- ─── Add Modal ─── -->
+<div class="modal-bg" id="addModal">
+  <div class="modal" style="max-width:480px;">
+    <h3>➕ Add Product to Catalogue</h3>
+    <div class="modal-field">
+      <label>Product Name (English) *</label>
+      <input type="text" id="addName" placeholder="e.g. Tomato">
+    </div>
+    <div class="modal-field">
+      <label>Product Name (Arabic)</label>
+      <input type="text" id="addNameAr" placeholder="مثال: طماطم" style="direction:rtl;">
+    </div>
+    <div class="modal-field">
+      <label>Category *</label>
+      <select id="addCategory">
+        {% for val, label in category_choices %}
+        <option value="{{ val }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>Image URL</label>
+      <input type="url" id="addImageUrl" placeholder="https://..." oninput="previewImage('addPreview',this.value)">
+      <div style="margin-top:10px;min-height:60px;">
+        <img id="addPreview" src="" alt="" style="width:80px;height:80px;border-radius:10px;object-fit:cover;border:2px solid #ddd;display:none;">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('addModal')">Cancel</button>
+      <button class="modal-save" onclick="saveAdd()">Add Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Edit Modal ─── -->
+<div class="modal-bg" id="editModal">
+  <div class="modal" style="max-width:480px;">
+    <h3>✏️ Edit Product</h3>
+    <input type="hidden" id="editId">
+    <div class="modal-field">
+      <label>Product Name (English) *</label>
+      <input type="text" id="editName">
+    </div>
+    <div class="modal-field">
+      <label>Product Name (Arabic)</label>
+      <input type="text" id="editNameAr" style="direction:rtl;">
+    </div>
+    <div class="modal-field">
+      <label>Category *</label>
+      <select id="editCategory">
+        {% for val, label in category_choices %}
+        <option value="{{ val }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>Image URL</label>
+      <input type="url" id="editImageUrl" oninput="previewImage('editPreview',this.value)">
+      <div style="margin-top:10px;">
+        <img id="editPreview" src="" alt="" style="width:80px;height:80px;border-radius:10px;object-fit:cover;border:2px solid #ddd;display:none;">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('editModal')">Cancel</button>
+      <button class="modal-save" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openAddModal(){
+  document.getElementById('addName').value='';
+  document.getElementById('addNameAr').value='';
+  document.getElementById('addImageUrl').value='';
+  document.getElementById('addCategory').selectedIndex=0;
+  previewImage('addPreview','');
+  document.getElementById('addModal').classList.add('open');
+}
+function openEditModal(id,name,nameAr,category,imageUrl){
+  document.getElementById('editId').value=id;
+  document.getElementById('editName').value=name;
+  document.getElementById('editNameAr').value=nameAr;
+  document.getElementById('editImageUrl').value=imageUrl;
+  const sel=document.getElementById('editCategory');
+  for(let i=0;i<sel.options.length;i++) if(sel.options[i].value===category){sel.selectedIndex=i;break;}
+  previewImage('editPreview',imageUrl);
+  document.getElementById('editModal').classList.add('open');
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function previewImage(pid,url){
+  const img=document.getElementById(pid);
+  if(url){img.src=url;img.style.display='block';img.onerror=()=>{img.style.display='none';};}
+  else img.style.display='none';
+}
+async function saveAdd(){
+  const name=document.getElementById('addName').value.trim();
+  if(!name){showToast('Product name is required',false);return;}
+  const data=await apiPost('/ministry/catalogue/add/',{name,name_ar:document.getElementById('addNameAr').value.trim(),category:document.getElementById('addCategory').value,image_url:document.getElementById('addImageUrl').value.trim()});
+  if(data.status==='ok'){showToast('Product added ✓');setTimeout(()=>location.reload(),700);}
+  else showToast('Error: '+(data.msg||'failed'),false);
+}
+async function saveEdit(){
+  const id=document.getElementById('editId').value;
+  const name=document.getElementById('editName').value.trim();
+  if(!name){showToast('Product name is required',false);return;}
+  const data=await apiPost(`/ministry/catalogue/${id}/edit/`,{name,name_ar:document.getElementById('editNameAr').value.trim(),category:document.getElementById('editCategory').value,image_url:document.getElementById('editImageUrl').value.trim()});
+  if(data.status==='ok'){showToast('Product updated ✓');setTimeout(()=>location.reload(),700);}
+  else showToast('Error: '+(data.msg||'failed'),false);
+}
+async function deleteProductType(id,name){
+  if(!confirm(`Delete "${name}" from the catalogue?`))return;
+  const data=await apiPost(`/ministry/catalogue/${id}/delete/`,{});
+  if(data.status==='ok'){showToast('Product deleted');setTimeout(()=>location.reload(),700);}
+  else showToast('Error: '+(data.msg||'failed'),false);
+}
+</script>
+{% endblock %}

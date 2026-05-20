@@ -1,0 +1,113 @@
+{% extends 'ministry/ministry_base.html' %}
+{% block title %}Product Categories{% endblock %}
+{% block topbar_title %}🌾 Product Categories{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>🌾 Product Categories</h1>
+    <p>Manage all agricultural product categories</p>
+  </div>
+  <div class="header-actions">
+    <button class="hbtn" onclick="openAddModal()">+ Add Category</button>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><h4>Total Categories</h4><p>{{ total }}</p></div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;">
+  {% for cat in categories %}
+  <div class="table-card" style="overflow:hidden;">
+    <div style="height:70px;background:linear-gradient(135deg,#2e8b42,#1e4620);display:flex;align-items:center;padding:0 20px;">
+      <span style="color:white;font-size:22px;font-weight:700;">{{ cat.name }}</span>
+    </div>
+    <div style="padding:16px;">
+      <p style="color:#777;font-size:13px;margin-bottom:10px;">{{ cat.description|default:"No description." }}</p>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <span class="badge badge-green">{{ cat.product_count }} products</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-info" style="flex:1;" onclick='openEditModal({{ cat.id }}, "{{ cat.name|escapejs }}", "{{ cat.description|escapejs }}")'>Edit</button>
+        <button class="btn btn-danger" onclick="deleteCategory({{ cat.id }}, '{{ cat.name|escapejs }}')">Delete</button>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div style="grid-column:1/-1;text-align:center;padding:50px;color:#aaa;">No categories yet. Add one!</div>
+  {% endfor %}
+</div>
+
+<!-- Add Modal -->
+<div class="modal-bg" id="addModal">
+  <div class="modal">
+    <h3>➕ Add Category</h3>
+    <div class="modal-field">
+      <label>Category Name *</label>
+      <input type="text" id="addName" placeholder="e.g. Vegetables">
+    </div>
+    <div class="modal-field">
+      <label>Description</label>
+      <textarea id="addDesc" placeholder="Brief description…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('addModal')">Cancel</button>
+      <button class="modal-save" onclick="saveAdd()">Add Category</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <h3>✏️ Edit Category</h3>
+    <input type="hidden" id="editId">
+    <div class="modal-field">
+      <label>Category Name *</label>
+      <input type="text" id="editName">
+    </div>
+    <div class="modal-field">
+      <label>Description</label>
+      <textarea id="editDesc"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('editModal')">Cancel</button>
+      <button class="modal-save" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openAddModal() { document.getElementById('addModal').classList.add('open'); }
+function openEditModal(id, name, desc) {
+  document.getElementById('editId').value = id;
+  document.getElementById('editName').value = name;
+  document.getElementById('editDesc').value = desc;
+  document.getElementById('editModal').classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function saveAdd() {
+  const name = document.getElementById('addName').value.trim();
+  if (!name) { showToast('Name required', false); return; }
+  const data = await apiPost('/ministry/categories/add/', {name, description: document.getElementById('addDesc').value});
+  if (data.status === 'ok') { showToast('Category added ✓'); setTimeout(() => location.reload(), 700); }
+  else showToast('Error: ' + (data.msg||'failed'), false);
+}
+async function saveEdit() {
+  const id = document.getElementById('editId').value;
+  const name = document.getElementById('editName').value.trim();
+  if (!name) { showToast('Name required', false); return; }
+  const data = await apiPost(`/ministry/categories/${id}/edit/`, {name, description: document.getElementById('editDesc').value});
+  if (data.status === 'ok') { showToast('Category updated ✓'); setTimeout(() => location.reload(), 700); }
+}
+async function deleteCategory(id, name) {
+  if (!confirm(`Delete category "${name}"? Products in this category may be affected.`)) return;
+  const data = await apiPost(`/ministry/categories/${id}/delete/`, {});
+  if (data.status === 'ok') { showToast('Category deleted'); setTimeout(() => location.reload(), 700); }
+}
+</script>
+{% endblock %}

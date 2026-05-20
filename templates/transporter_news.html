@@ -1,0 +1,74 @@
+{% extends 'transporter_base.html' %}
+{% block title %}Service News{% endblock %}
+{% block topbar_title %}📰 Service News{% endblock %}
+{% block extra_style %}
+.urgent-banner{background:linear-gradient(135deg,#e53935,#b71c1c);color:white;padding:18px 25px;margin:20px;border-radius:12px;display:flex;align-items:flex-start;gap:15px;}
+.urgent-icon{font-size:28px;flex-shrink:0;}
+.urgent-banner h4{font-size:15px;margin-bottom:5px;}
+.urgent-banner p{font-size:13px;opacity:0.9;}
+.tabs{display:flex;gap:8px;margin:0 20px 15px;flex-wrap:wrap;}
+.tab-btn{padding:8px 16px;border:2px solid #ddd;background:white;border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;transition:0.3s;}
+.tab-btn:hover{border-color:#2e8b42;color:#2e8b42;}
+.tab-btn.active{background:#2e8b42;color:white;border-color:#2e8b42;}
+.controls{display:flex;margin:0 20px 15px;}.controls input{flex:1;padding:9px 14px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none;}
+.news-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;margin:20px;}
+.news-card{background:white;border-radius:14px;box-shadow:0 5px 15px rgba(0,0,0,0.08);overflow:hidden;cursor:pointer;transition:0.3s;}
+.news-card:hover{transform:translateY(-4px);box-shadow:0 10px 25px rgba(0,0,0,0.12);}
+.news-img{width:100%;height:160px;object-fit:cover;display:block;}
+.news-body{padding:16px;}
+.news-category{font-size:11px;font-weight:bold;padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:8px;}
+.cat-price{background:#fff3cd;color:#856404;}
+.cat-route{background:#e3f2fd;color:#1565c0;}
+.cat-policy{background:#f3e5f5;color:#6a1b9a;}
+.cat-maintenance{background:#fce4ec;color:#c62828;}
+.news-body h3{color:#1e4620;font-size:14px;margin-bottom:6px;line-height:1.4;}
+.news-body p{color:#777;font-size:12px;line-height:1.5;}
+.news-footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px;}
+.date{font-size:11px;color:#aaa;}
+.unread-badge{background:#2e8b42;color:white;font-size:10px;font-weight:bold;padding:2px 8px;border-radius:20px;}
+.read-badge{background:#e0e0e0;color:#777;font-size:10px;font-weight:bold;padding:2px 8px;border-radius:20px;}
+.dark .news-card{background:#1e1e1e;}
+.dark .news-body h3{color:#88d982;}
+.dark .news-body p{color:#aaa;}
+.dark .tab-btn{background:#1e1e1e;border-color:#333;color:#ddd;}
+.dark .tab-btn.active{background:#2e8b42;color:white;}
+.dark .controls input{background:#2a2a2a;color:white;border-color:#333;}
+{% endblock %}
+{% block content %}
+<div class="header"><h1>Service News</h1><p>Latest updates, price changes, routes, and platform announcements</p></div>
+<div class="urgent-banner">
+  <div class="urgent-icon">🚨</div>
+  <div>
+    <h4>Urgent: Vehicle Inspection Reminder</h4>
+    <p>All registered transporters must complete their annual technical inspection before June 30th, 2026 to remain active on the platform.</p>
+  </div>
+</div>
+<div class="tabs">
+  <button class="tab-btn active" onclick="filterTab('all',this)">📰 All News</button>
+  <button class="tab-btn" onclick="filterTab('price',this)">💰 Prices</button>
+  <button class="tab-btn" onclick="filterTab('policy',this)">📜 Policies</button>
+  <button class="tab-btn" onclick="filterTab('maintenance',this)">🔧 Maintenance</button>
+  <button class="tab-btn" onclick="filterTab('route',this)">🗺 Routes</button>
+</div>
+<div class="controls"><input type="text" id="searchInput" placeholder="🔍 Search news..." oninput="filterNews()"></div>
+<div class="news-grid" id="newsGrid">
+  <div class="news-card" data-cat="price"><img class="news-img" src="https://images.unsplash.com/photo-1611273426858-450d8e3c9fce?w=500" alt=""><div class="news-body"><span class="news-category cat-price">💰 Prices</span><h3>Ministry Updates Official Market Prices for April 2026</h3><p>Reference prices revised for key agricultural products including tomatoes, potatoes, and wheat.</p><div class="news-footer"><span class="date">📅 Apr 15, 2026</span><span class="unread-badge">New</span></div></div></div>
+  <div class="news-card" data-cat="route"><img class="news-img" src="https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=500" alt=""><div class="news-body"><span class="news-category cat-route">🗺 Route Update</span><h3>New Delivery Route: Constantine — Annaba Express</h3><p>New agricultural transport corridor reduces transit time by approximately 40 minutes.</p><div class="news-footer"><span class="date">📅 Apr 14, 2026</span><span class="unread-badge">New</span></div></div></div>
+  <div class="news-card" data-cat="policy"><img class="news-img" src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=500" alt=""><div class="news-body"><span class="news-category cat-policy">📜 Policy</span><h3>Updated Platform Terms: Delivery Cancellation Policy</h3><p>Transporters who cancel accepted missions with less than 2 hours notice will receive a penalty point.</p><div class="news-footer"><span class="date">📅 Apr 12, 2026</span><span class="read-badge">Read</span></div></div></div>
+  <div class="news-card" data-cat="maintenance"><img class="news-img" src="https://images.unsplash.com/photo-1530046339160-ce3e530c7d2f?w=500" alt=""><div class="news-body"><span class="news-category cat-maintenance">🔧 Maintenance</span><h3>Annual Vehicle Inspection Deadline — June 2026</h3><p>Complete your vehicle technical inspection before June 30th, 2026 to remain active.</p><div class="news-footer"><span class="date">📅 Apr 10, 2026</span><span class="read-badge">Read</span></div></div></div>
+  <div class="news-card" data-cat="price"><img class="news-img" src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=500" alt=""><div class="news-body"><span class="news-category cat-price">💰 Fuel Prices</span><h3>Diesel Price Adjustment: New Rate Effective April 20th</h3><p>New diesel rate: 31.5 DA/L. Transporter allowances will be adjusted accordingly.</p><div class="news-footer"><span class="date">📅 Apr 9, 2026</span><span class="unread-badge">New</span></div></div></div>
+  <div class="no-result" id="noResult" style="grid-column:1/-1;"><p style="font-size:36px;">🔍</p><p style="margin-top:10px;">No news found.</p></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+let activeTab = 'all';
+function filterTab(tab, btn) { activeTab = tab; document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); filterNews(); }
+function filterNews() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const cards = document.querySelectorAll('.news-card'); let v = 0;
+  cards.forEach(c => { const show = (activeTab === 'all' || c.dataset.cat === activeTab) && (q === '' || c.textContent.toLowerCase().includes(q)); c.style.display = show ? '' : 'none'; if (show) v++; });
+  document.getElementById('noResult').style.display = v === 0 ? 'block' : 'none';
+}
+</script>
+{% endblock %}

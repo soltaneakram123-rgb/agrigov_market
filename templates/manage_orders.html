@@ -1,0 +1,155 @@
+{% extends 'farmer_base.html' %}
+{% block title %}Manage Orders{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div class="header-left">
+    <h1>Manage Orders</h1>
+    <p>View and manage incoming orders from buyers</p>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card" onclick="filterByCard('all',this)" style="cursor:pointer;">
+    <h4>Total Orders</h4><p>{{ orders|length }}</p>
+  </div>
+  <div class="stat-card orange" onclick="filterByCard('pending',this)" style="cursor:pointer;">
+    <h4>Pending</h4><p>{{ pending_count }}</p>
+  </div>
+  <div class="stat-card blue" onclick="filterByCard('confirmed',this)" style="cursor:pointer;">
+    <h4>Confirmed</h4><p>{{ confirmed_count }}</p>
+  </div>
+  <div class="stat-card red" onclick="filterByCard('cancelled',this)" style="cursor:pointer;">
+    <h4>Cancelled</h4><p>{{ cancelled_count }}</p>
+  </div>
+</div>
+
+<div class="controls">
+  <input type="text" id="searchInput" placeholder="🔍 Search order, buyer, product...">
+</div>
+
+<div class="table-container">
+  <div class="table-header">
+    <h3>📋 Orders List</h3>
+    <span style="font-size:13px;color:#777;" id="resultCount">{{ orders|length }} orders</span>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Order ID</th><th>Buyer</th><th>Products</th><th>Total</th><th>Shipping Address</th><th>Date</th><th>Status</th><th>Actions</th></tr>
+    </thead>
+    <tbody id="ordersBody">
+      {% for order in orders %}
+      <tr data-status="{{ order.status }}">
+        <td><strong>#{{ order.id }}</strong></td>
+        <td>{{ order.buyer.username }}</td>
+        <td>
+          {% for item in order.items.all %}
+            {{ item.product.name }} ({{ item.quantity_kg }}kg){% if not forloop.last %}, {% endif %}
+          {% endfor %}
+        </td>
+        <td>{{ order.total_amount }} DA</td>
+        <td>
+          {% if order.shipping_address %}
+          <div style="font-size:12px;line-height:1.5;">
+            <div>📍 <strong>{{ order.shipping_wilaya }}</strong></div>
+            <div style="color:#666;">{{ order.shipping_address }}</div>
+            <div>📞 {{ order.shipping_phone }}</div>
+            {% if order.shipping_notes %}<div style="color:#888;font-style:italic;">{{ order.shipping_notes }}</div>{% endif %}
+          </div>
+          {% else %}<span style="color:#aaa;">—</span>{% endif %}
+        </td>
+        <td>{{ order.created_at|date:"d M Y" }}</td>
+        <td>
+          {% if order.status == 'pending' %}
+            <span class="badge badge-pending">⏳ Pending</span>
+          {% elif order.status == 'confirmed' %}
+            <span class="badge badge-confirmed">✅ Confirmed</span>
+          {% elif order.status == 'in_transit' %}
+            <span class="badge badge-transit">🚚 In Transit</span>
+          {% elif order.status == 'delivered' %}
+            <span class="badge badge-delivered">📦 Delivered</span>
+          {% else %}
+            <span class="badge badge-rejected">❌ Cancelled</span>
+          {% endif %}
+        </td>
+        <td>
+          <button class="btn btn-view"
+            onclick="openModal('{{ order.id }}','{{ order.buyer.username }}','{{ order.total_amount }}','{{ order.created_at|date:"d M Y" }}','{{ order.status }}')">
+            👁 View
+          </button>
+          {% if order.status == 'pending' %}
+          <form method="post" action="{% url 'update_order_status' order.id %}" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="confirmed">
+            <button type="submit" class="btn btn-accept">✅ Accept</button>
+          </form>
+          <form method="post" action="{% url 'update_order_status' order.id %}" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="cancelled">
+            <button type="submit" class="btn btn-reject">❌ Reject</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px;">No orders yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="no-result" id="noResult">
+    <p style="font-size:36px;">🔍</p>
+    <p style="margin-top:10px;">No orders found.</p>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3>📦 Order Details</h3>
+    <div class="modal-row"><span>Order ID</span><strong id="m-id"></strong></div>
+    <div class="modal-row"><span>Buyer</span><strong id="m-buyer"></strong></div>
+    <div class="modal-row"><span>Total Amount</span><strong id="m-amount"></strong></div>
+    <div class="modal-row"><span>Date</span><strong id="m-date"></strong></div>
+    <div class="modal-row"><span>Status</span><strong id="m-status"></strong></div>
+    <div class="modal-actions">
+      <button class="modal-close" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let cardFilter = "all";
+function filterByCard(status, card) {
+  cardFilter = status;
+  document.querySelectorAll(".stat-card").forEach(c => c.style.background = "");
+  card.style.background = "#e8f5e9";
+  applyFilters();
+}
+function applyFilters() {
+  const q = document.getElementById("searchInput").value.toLowerCase();
+  const rows = document.querySelectorAll("#ordersBody tr");
+  let visible = 0;
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    const matchQ = q === "" || text.includes(q);
+    const matchS = cardFilter === "all" || row.dataset.status === cardFilter;
+    const show = matchQ && matchS;
+    row.style.display = show ? "" : "none";
+    if (show) visible++;
+  });
+  document.getElementById("resultCount").textContent = visible + " order" + (visible !== 1 ? "s" : "");
+  document.getElementById("noResult").style.display = visible === 0 ? "block" : "none";
+}
+document.getElementById("searchInput").addEventListener("keyup", applyFilters);
+function openModal(id, buyer, amount, date, status) {
+  document.getElementById("m-id").textContent = "#" + id;
+  document.getElementById("m-buyer").textContent = buyer;
+  document.getElementById("m-amount").textContent = amount + " DA";
+  document.getElementById("m-date").textContent = date;
+  document.getElementById("m-status").textContent = status;
+  document.getElementById("modalBg").classList.add("open");
+}
+function closeModal() { document.getElementById("modalBg").classList.remove("open"); }
+</script>
+{% endblock %}
