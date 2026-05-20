@@ -1,100 +1,79 @@
-{% extends 'buyer_base.html' %}
-{% block title %}My Profile{% endblock %}
-{% block topbar_title %}🛍 Buyer Dashboard{% endblock %}
-
-{% block extra_style %}
-.profile-container{margin:20px;display:flex;gap:20px;flex-wrap:wrap;}
-.profile-card{flex:1;min-width:260px;background:white;padding:25px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.08);text-align:center;transition:0.3s;}
-.profile-card:hover{transform:translateY(-4px);}
-.profile-card img{width:100px;height:100px;border-radius:50%;margin-bottom:15px;border:4px solid #2e8b42;object-fit:cover;}
-.profile-card h2{color:#1e4620;margin-bottom:4px;}
-.role-badge{background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:bold;padding:4px 14px;border-radius:20px;display:inline-block;margin-bottom:15px;}
-.edit-btn{padding:8px 18px;border:none;background:#2e8b42;color:white;border-radius:8px;cursor:pointer;transition:0.3s;font-size:13px;}
-.edit-btn:hover{background:#256f35;}
-.stats{display:flex;gap:10px;margin-top:18px;}
-.stat-box{flex:1;background:#f8f8f8;padding:12px;border-radius:10px;text-align:center;transition:0.3s;}
-.stat-box:hover{transform:scale(1.05);}
-.stat-box h3{color:#2e8b42;font-size:18px;}
-.stat-box p{font-size:12px;color:#777;margin-top:3px;}
-.info-card{flex:2;min-width:300px;background:white;padding:25px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.08);}
-.info-card h3{color:#1e4620;margin-bottom:15px;font-size:15px;}
-.info-row{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #f0f0f0;border-radius:8px;transition:0.3s;}
-.info-row:last-child{border-bottom:none;}
-.info-row:hover{background:#f5f5f5;}
-.info-row span{color:#666;font-size:14px;}
-.info-row strong{color:#1e4620;font-size:14px;}
-.bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px;}
-.card{background:white;padding:22px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.08);transition:0.3s;}
-.card:hover{transform:translateY(-4px);}
-.card h3{color:#1e4620;margin-bottom:15px;font-size:15px;}
-.order-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;margin-bottom:6px;background:#f8f8f8;}
-.setting-item{display:flex;justify-content:space-between;align-items:center;padding:12px;margin-bottom:8px;border-radius:8px;background:#f8f8f8;transition:0.3s;cursor:pointer;}
-.setting-item:hover{background:#e8f5e9;}
-.setting-item span{font-size:13px;}
-.dark .profile-card,.dark .info-card,.dark .card{background:#1e1e1e;}
-.dark .profile-card h2{color:#88d982;}
-.dark .info-row span{color:#aaa;}
-.dark .info-row strong{color:#88d982;}
-.dark .info-row:hover{background:#2a2a2a;}
-.dark .stat-box{background:#2a2a2a;}
-.dark .stat-box p{color:#aaa;}
-.dark .card h3{color:#88d982;}
-.dark .order-item{background:#2a2a2a;color:#ddd;}
-.dark .setting-item{background:#2a2a2a;color:#ddd;}
-.dark .setting-item:hover{background:#1a3320;}
-{% endblock %}
+{% extends 'farmer_base.html' %}
+{% block title %}Profile{% endblock %}
+{% block topbar_title %}👤 Profile{% endblock %}
 
 {% block content %}
 <div class="header">
-  <h1>My Profile</h1>
-  <p>Manage your purchases, delivery & account settings</p>
+  <h1>👤 My Profile</h1>
 </div>
 
-<div class="profile-container">
-  <div class="profile-card">
-    <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Profile">
-    <h2>{{ user.get_full_name|default:user.username }}</h2>
-    <div class="role-badge">🛒 Verified Buyer</div>
-    <button class="edit-btn" onclick="openModal('editModal')">✏ Edit Profile</button>
-    <div class="stats">
-      <div class="stat-box"><h3>{{ total_orders }}</h3><p>Orders</p></div>
-      <div class="stat-box"><h3>{{ total_spent|floatformat:0 }}</h3><p>DA Spent</p></div>
-      <div class="stat-box"><h3>{{ delivered_count }}</h3><p>Delivered</p></div>
+<div style="margin:20px;display:flex;gap:20px;flex-wrap:wrap;">
+  <!-- Profile Card -->
+  <div style="flex:1;min-width:260px;background:white;padding:25px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.08);text-align:center;">
+    <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" style="width:100px;height:100px;border-radius:50%;margin-bottom:15px;border:4px solid #2e8b42;">
+    <h2 style="color:#1e4620;margin-bottom:4px;">{{ user.get_full_name|default:user.username }}</h2>
+    <span style="background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:bold;padding:4px 14px;border-radius:20px;display:inline-block;margin-bottom:15px;">
+      🌾 Farmer
+    </span>
+    <div style="display:flex;gap:10px;margin-top:18px;">
+      <div style="flex:1;background:#f8f8f8;padding:12px;border-radius:10px;text-align:center;">
+        <h3 style="color:#2e8b42;font-size:18px;">{{ total_products }}</h3>
+        <p style="font-size:12px;color:#777;margin-top:3px;">Products</p>
+      </div>
+      <div style="flex:1;background:#f8f8f8;padding:12px;border-radius:10px;text-align:center;">
+        <h3 style="color:#2e8b42;font-size:18px;">{{ total_orders }}</h3>
+        <p style="font-size:12px;color:#777;margin-top:3px;">Orders</p>
+      </div>
     </div>
   </div>
 
-  <div class="info-card">
-    <h3>📋 Personal Information</h3>
-    <div class="info-row"><span>Username</span><strong>{{ user.username }}</strong></div>
-    <div class="info-row"><span>Email</span><strong>{{ user.email|default:"—" }}</strong></div>
-    <div class="info-row"><span>Phone</span><strong>{{ user.phone|default:"—" }}</strong></div>
-    <div class="info-row"><span>Role</span><strong>{{ user.get_role_display }}</strong></div>
-    <div class="info-row"><span>Member Since</span><strong>{{ user.date_joined|date:"d M Y" }}</strong></div>
-    <div class="info-row"><span>Account Status</span><strong style="color:#2e8b42;">✅ Active</strong></div>
-  </div>
-</div>
-
-<div class="bottom-grid">
-  <div class="card">
-    <h3>📦 Recent Orders</h3>
-    {% for order in recent_orders %}
-    <div class="order-item">
-      <span>#{{ order.id }} — {% for item in order.items.all %}{{ item.product.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
-      {% if order.status == 'delivered' %}<span class="badge badge-delivered">✅ Delivered</span>
-      {% elif order.status == 'in_transit' %}<span class="badge badge-transit">🚚 Shipping</span>
-      {% else %}<span class="badge badge-pending">⏳ Pending</span>{% endif %}
+  <!-- Info Card -->
+  <div style="flex:2;min-width:300px;background:white;padding:25px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.08);">
+    <h3 style="color:#1e4620;margin-bottom:15px;font-size:15px;">📋 Account Information</h3>
+    <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
+      <span style="color:#666;">First Name</span><strong style="color:#1e4620;">{{ user.first_name|default:"—" }}</strong>
     </div>
-    {% empty %}
-    <p style="color:#aaa;font-size:13px;text-align:center;padding:20px;">No orders yet.</p>
-    {% endfor %}
-    <a href="{% url 'buyer_orders' %}" style="display:block;margin-top:12px;text-align:center;background:#2e8b42;color:white;padding:8px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:bold;">View All Orders</a>
-  </div>
-  <div class="card">
-    <h3>⚙ Settings</h3>
-    <div class="setting-item"><span>🔔 Push Notifications</span><span style="color:#2e8b42;font-weight:bold;">ON</span></div>
-    <div class="setting-item"><span>📧 Email Alerts</span><span style="color:#2e8b42;font-weight:bold;">ON</span></div>
-    <div class="setting-item" onclick="document.body.classList.toggle('dark');"><span>🌙 Dark Mode</span><span>Toggle</span></div>
-    <div class="setting-item"><span>🔐 Account Status</span><span style="color:#2e8b42;">Verified</span></div>
+    <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
+      <span style="color:#666;">Last Name</span><strong style="color:#1e4620;">{{ user.last_name|default:"—" }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
+      <span style="color:#666;">Username</span><strong style="color:#1e4620;">{{ user.username }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
+      <span style="color:#666;">Email</span><strong style="color:#1e4620;">{{ user.email|default:"—" }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
+      <span style="color:#666;">Phone</span><strong style="color:#1e4620;">{{ user.phone|default:"—" }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
+      <span style="color:#666;">Role</span><strong style="color:#1e4620;">{{ user.get_role_display }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:12px;">
+      <span style="color:#666;">Member Since</span><strong style="color:#1e4620;">{{ user.date_joined|date:"d M Y" }}</strong>
+    </div>
+
+    <hr style="margin:20px 0;border:none;border-top:1px solid #f0f0f0;">
+    <h3 style="color:#1e4620;margin-bottom:15px;font-size:15px;">🌾 Farm Info</h3>
+    {% if farm %}
+    <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
+      <span style="color:#666;">Farm Name</span><strong style="color:#1e4620;">{{ farm.name }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
+      <span style="color:#666;">Location</span><strong style="color:#1e4620;">{{ farm.location }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:12px;">
+      <span style="color:#666;">Size</span><strong style="color:#1e4620;">{% if farm.size_hectares %}{{ farm.size_hectares }} ha{% else %}—{% endif %}</strong>
+    </div>
+    {% else %}
+    <p style="color:#aaa;font-size:13px;">No farm registered yet. <a href="{% url 'my_farm' %}" style="color:#2e8b42;">Add your farm →</a></p>
+    {% endif %}
+
+    <div style="margin-top:20px;text-align:right;">
+      <button onclick="document.getElementById('editModal').classList.add('open')"
+        style="background:#1e4620;color:white;border:none;padding:10px 22px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">
+        ✏ Edit Profile
+      </button>
+    </div>
   </div>
 </div>
 
@@ -102,12 +81,14 @@
 <div class="modal-bg" id="editModal">
   <div class="modal">
     <h3>✏ Edit Profile</h3>
-    <form method="post" action="{% url 'buyer_profile' %}">
+    <form method="post" action="{% url 'farmer_profile' %}">
       {% csrf_token %}
+      <div class="modal-field"><label>First Name</label><input type="text" name="first_name" value="{{ user.first_name }}" placeholder="First name"></div>
+      <div class="modal-field"><label>Last Name</label><input type="text" name="last_name" value="{{ user.last_name }}" placeholder="Last name"></div>
       <div class="modal-field"><label>Email</label><input type="email" name="email" value="{{ user.email }}"></div>
       <div class="modal-field"><label>Phone</label><input type="text" name="phone" value="{{ user.phone }}"></div>
       <div class="modal-actions">
-        <button type="button" class="modal-close" onclick="closeModal('editModal')">Cancel</button>
+        <button type="button" class="modal-close" onclick="document.getElementById('editModal').classList.remove('open')">Cancel</button>
         <button type="submit" class="modal-save">Save Changes</button>
       </div>
     </form>

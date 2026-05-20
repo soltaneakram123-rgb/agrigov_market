@@ -23,7 +23,7 @@
   <div style="background:white;border-radius:14px;box-shadow:0 5px 15px rgba(0,0,0,0.08);overflow:hidden;">
     <div style="background:linear-gradient(135deg,#2e8b42,#1e4620);color:white;padding:24px;">
       <h2 style="font-size:20px;margin:0;">{{ farm.name }}</h2>
-      <p style="opacity:0.85;margin-top:5px;font-size:14px;">📍 {{ farm.location }}</p>
+      <p style="opacity:0.85;margin-top:5px;font-size:14px;">📍 {{ farm.location }}{% if farm.size_hectares %} &nbsp;·&nbsp; 📐 {{ farm.size_hectares }} ha{% endif %}</p>
     </div>
     <div style="padding:20px;">
       <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f0;">

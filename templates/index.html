@@ -108,9 +108,9 @@ body { font-family: 'Manrope', sans-serif; scroll-behavior: smooth; }
         </a>
       </div>
       <div class="grid grid-cols-3 gap-6">
-        <div class="text-center"><div class="stat-number">2.4K+</div><p class="text-slate-400 text-sm font-semibold">Active Farmers</p></div>
-        <div class="text-center"><div class="stat-number">18K+</div><p class="text-slate-400 text-sm font-semibold">Products Listed</p></div>
-        <div class="text-center"><div class="stat-number">94%</div><p class="text-slate-400 text-sm font-semibold">Satisfaction Rate</p></div>
+        <div class="text-center"><div class="stat-number">{{ stats.farmers_count }}+</div><p class="text-slate-400 text-sm font-semibold">Active Farmers</p></div>
+        <div class="text-center"><div class="stat-number">{{ stats.products_count }}+</div><p class="text-slate-400 text-sm font-semibold">Products Listed</p></div>
+        <div class="text-center"><div class="stat-number">{{ stats.satisfaction }}%</div><p class="text-slate-400 text-sm font-semibold">Satisfaction Rate</p></div>
       </div>
     </div>
     <div class="hidden lg:block relative">
@@ -268,10 +268,10 @@ body { font-family: 'Manrope', sans-serif; scroll-behavior: smooth; }
 <section class="py-20 px-6 md:px-10 hero-bg section-fade">
 <div class="max-w-7xl mx-auto">
   <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-    <div><div class="stat-number">2,400+</div><p class="text-slate-300 font-semibold text-sm">Registered Farmers</p></div>
-    <div><div class="stat-number">850+</div><p class="text-slate-300 font-semibold text-sm">Active Transporters</p></div>
-    <div><div class="stat-number">18K+</div><p class="text-slate-300 font-semibold text-sm">Product Listings</p></div>
-    <div><div class="stat-number">48</div><p class="text-slate-300 font-semibold text-sm">Wilayas Covered</p></div>
+    <div><div class="stat-number">{{ stats.farmers_count }}+</div><p class="text-slate-300 font-semibold text-sm">Registered Farmers</p></div>
+    <div><div class="stat-number">{{ stats.transporters_count }}+</div><p class="text-slate-300 font-semibold text-sm">Active Transporters</p></div>
+    <div><div class="stat-number">{{ stats.products_count }}+</div><p class="text-slate-300 font-semibold text-sm">Product Listings</p></div>
+    <div><div class="stat-number">{{ stats.wilayas_count }}</div><p class="text-slate-300 font-semibold text-sm">Wilayas Covered</p></div>
   </div>
 </div>
 </section>

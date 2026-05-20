@@ -56,6 +56,8 @@
   </div>
   <div class="info-card">
     <h3>📋 Personal Information</h3>
+    <div class="info-row"><span>First Name</span><strong>{{ user.first_name|default:"—" }}</strong></div>
+    <div class="info-row"><span>Last Name</span><strong>{{ user.last_name|default:"—" }}</strong></div>
     <div class="info-row"><span>Username</span><strong>{{ user.username }}</strong></div>
     <div class="info-row"><span>Email</span><strong>{{ user.email|default:"—" }}</strong></div>
     <div class="info-row"><span>Phone</span><strong>{{ user.phone|default:"—" }}</strong></div>
@@ -105,6 +107,10 @@
     <h3>✏ Edit Profile</h3>
     <form method="post" action="{% url 'transporter_profile' %}">
       {% csrf_token %}
+      <div class="two-col">
+        <div class="modal-field"><label>First Name</label><input type="text" name="first_name" value="{{ user.first_name }}" placeholder="First name"></div>
+        <div class="modal-field"><label>Last Name</label><input type="text" name="last_name" value="{{ user.last_name }}" placeholder="Last name"></div>
+      </div>
       <div class="two-col">
         <div class="modal-field"><label>Email</label><input type="email" name="email" value="{{ user.email }}"></div>
         <div class="modal-field"><label>Phone</label><input type="text" name="phone" value="{{ user.phone }}"></div>

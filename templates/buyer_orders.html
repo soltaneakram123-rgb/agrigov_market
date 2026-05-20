@@ -79,10 +79,11 @@
           {% elif order.shipping_approval == 'approved' and order.shipping_price %}
             <div>
               <strong style="color:#2e8b42;">{{ order.shipping_price }} DA</strong>
-              <div style="margin-top:4px;font-size:11px;color:#2e8b42;font-weight:600;">✅ مقبول — الناقل في الطريق</div>
+              <div style="margin-top:4px;font-size:11px;color:#2e8b42;font-weight:600;">✅Accepted — The transporter is on the way.
+</div>
             </div>
           {% else %}
-            <span style="color:#aaa;font-size:12px;">⏳ في انتظار عروض الناقلين</span>
+            <span style="color:#aaa;font-size:12px;">⏳Waiting for Transporters’ Offers</span>
           {% endif %}
         </td>
         <td><strong style="color:#1e4620;">{{ order.grand_total|floatformat:2 }} DA</strong></td>
@@ -109,7 +110,7 @@
             👁 View
           </button>
           {% if order.status == 'in_transit' or order.status == 'confirmed' %}
-          <a href="{% url 'buyer_delivery' %}" class="btn btn-reorder" style="text-decoration:none;">📍 Track</a>
+          <a href="{% url 'buyer_delivery' %}?order_id={{ order.id }}" class="btn btn-reorder" style="text-decoration:none;">📍 Track</a>
           {% endif %}
           {% if order.status == 'pending' %}
           <form method="post" action="{% url 'cancel_order' order.id %}" style="display:inline;" onsubmit="return confirm('Cancel this order?')">

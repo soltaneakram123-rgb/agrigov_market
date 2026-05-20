@@ -27,8 +27,8 @@
 <div style="margin:0 20px 16px;background:#e8f5e9;border:2px solid #2e8b42;border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:12px;">
   <span style="font-size:24px;">🎉</span>
   <div>
-    <strong style="color:#1b5e20;font-size:14px;">تم قبول {{ accepted_offers_count }} من عروضك من طرف الـ Buyer!</strong>
-    <p style="margin:3px 0 0;color:#2e7d32;font-size:12px;">المهام المُسنَّدة لك ظاهرة أدناه — ابدأ التوصيل.</p>
+    <strong style="color:#1b5e20;font-size:14px;">{{ accepted_offers_count }} of your offers were accepted by the Buyer!</strong>
+    <p style="margin:3px 0 0;color:#2e7d32;font-size:12px;">Your assigned missions are shown below — start delivering.</p>
   </div>
 </div>
 {% endif %}
@@ -37,8 +37,8 @@
 <div style="margin:0 20px 16px;background:#fce4ec;border:2px solid #e91e63;border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:12px;">
   <span style="font-size:24px;">❌</span>
   <div>
-    <strong style="color:#880e4f;font-size:14px;">رفض الـ Buyer {{ rejected_offers_count }} من عروضك.</strong>
-    <p style="margin:3px 0 0;color:#ad1457;font-size:12px;">يمكنك تقديم سعر جديد على نفس المهام أدناه.</p>
+    <strong style="color:#880e4f;font-size:14px;">The Buyer rejected {{ rejected_offers_count }} of your offers.</strong>
+    <p style="margin:3px 0 0;color:#ad1457;font-size:12px;">You can submit a new price for the same missions below.</p>
   </div>
 </div>
 {% endif %}
@@ -47,12 +47,12 @@
 <div class="active-mission-banner">
   <span class="icon">🔒</span>
   <div class="text">
-    <strong> You have an active task in progress.</strong>
+    <strong>You have an active task in progress.</strong>
     <p>
-      missions<strong>#MSN-{{ active_mission.id }}</strong>
+      Mission <strong>#MSN-{{ active_mission.id }}</strong>
       — {{ active_mission.get_status_display }}
-      &nbsp;|&nbsp; {{ active_mission.pickup_location }} ← {{ active_mission.delivery_location }}
-      <br>Complete this missions first before accepting any new missions.
+      &nbsp;|&nbsp; {{ active_mission.pickup_location }} → {{ active_mission.delivery_location }}
+      <br>Complete this mission first before accepting any new missions.
     </p>
   </div>
 </div>
@@ -114,42 +114,38 @@
           {% if d.status == 'pending' %}
 
             {% if has_active_mission %}
-              {# Transporter is busy — show lock message only #}
               <span class="locked-badge">🔒 Complete your current task first.</span>
 
             {% else %}
-              {# Free to submit offer — show price input + status of my_offer #}
               <div style="margin-bottom:8px;display:flex;gap:6px;align-items:center;">
                 <input type="number" id="price-{{ d.id }}" min="1" step="50"
                   value="{% if d.my_offer %}{{ d.my_offer.proposed_price }}{% endif %}"
-                  placeholder="سعر الشحن DA"
+                  placeholder="Shipping price DA"
                   style="width:130px;padding:6px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:12px;outline:none;">
                 <button onclick="setShippingPrice({{ d.id }})"
                   style="background:#1e4620;color:white;border:none;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;">
-                  💰 إرسال
+                  💰 Set
                 </button>
               </div>
 
-              {# حالة عرض هذا الناقل #}
               <div id="price-status-{{ d.id }}" style="font-size:11px;margin-bottom:6px;font-weight:600;">
                 {% if d.my_offer %}
                   {% if d.my_offer.status == 'accepted' %}
-                    <span style="color:#2e8b42;">✅ عرضك {{ d.my_offer.proposed_price }} DA — تم القبول من الـ Buyer!</span>
+                    <span style="color:#2e8b42;">✅ Your offer {{ d.my_offer.proposed_price }} DA — accepted by the Buyer!</span>
                   {% elif d.my_offer.status == 'rejected' %}
-                    <span style="color:#b91c1c;">❌ تم رفض عرضك {{ d.my_offer.proposed_price }} DA — أرسل عرضاً جديداً</span>
+                    <span style="color:#b91c1c;">❌ Your offer {{ d.my_offer.proposed_price }} DA was rejected — submit a new offer</span>
                   {% else %}
-                    <span style="color:#e65100;">⏳ عرضك {{ d.my_offer.proposed_price }} DA — في انتظار موافقة الـ Buyer</span>
+                    <span style="color:#e65100;">⏳ Your offer {{ d.my_offer.proposed_price }} DA — awaiting Buyer approval</span>
                   {% endif %}
                 {% else %}
-                  <span style="color:#aaa;">لم ترسل عرضاً بعد</span>
+                  <span style="color:#aaa;">No offer submitted yet</span>
                 {% endif %}
               </div>
 
-              {# زر Decline يعمل دائماً بغض النظر عن حالة العرض #}
               <form method="post" action="{% url 'transporter_mission_action' d.id %}" style="display:inline;">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="decline">
-                <button type="submit" class="btn btn-decline">❌ سحب العرض</button>
+                <button type="submit" class="btn btn-decline">❌ Withdraw Offer</button>
               </form>
             {% endif %}
 
@@ -263,9 +259,8 @@ function getCsrf() {
 }
 
 async function setShippingPrice(deliveryId) {
-  // Block on the client side too
   if (HAS_ACTIVE_MISSION) {
-    alert('🔒 You have a missions. Complete your current task before accepting a new one.');
+    alert('🔒 You have an active mission. Complete your current task before accepting a new one.');
     return;
   }
   const input = document.getElementById('price-' + deliveryId);

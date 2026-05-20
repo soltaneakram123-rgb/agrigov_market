@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import HttpResponse
 from .models import Product, ProductCategory, ProductType
 from farms.models import Farm
 from orders.models import Order
@@ -225,6 +226,14 @@ def farmer_notifications(request):
 def farmer_profile(request):
     redir = _require_farmer(request)
     if redir: return redir
+    if request.method == 'POST':
+        request.user.first_name = request.POST.get('first_name', request.user.first_name)
+        request.user.last_name  = request.POST.get('last_name',  request.user.last_name)
+        request.user.email      = request.POST.get('email',      request.user.email)
+        request.user.phone      = request.POST.get('phone',      request.user.phone)
+        request.user.save()
+        messages.success(request, "✅ Profile updated!")
+        return redirect('farmer_profile')
     farm = Farm.objects.filter(farmer=request.user).first()
     return render(request, 'farmer_profile.html', {
         'active_page':    'profile',
@@ -257,10 +266,16 @@ def create_farm(request):
     redir = _require_farmer(request)
     if redir: return redir
     if request.method == 'POST':
-        name     = request.POST.get('name', '').strip()
-        location = request.POST.get('location', '').strip()
+        name           = request.POST.get('name', '').strip()
+        location       = request.POST.get('location', '').strip()
+        size_hectares  = request.POST.get('size_hectares', '').strip() or None
         if name and location:
-            Farm.objects.create(farmer=request.user, name=name, location=location)
+            Farm.objects.create(
+                farmer=request.user,
+                name=name,
+                location=location,
+                size_hectares=size_hectares,
+            )
             messages.success(request, "🌾 Farm registered successfully!")
             return redirect('my_farm')
     return render(request, 'create_farm.html', {'active_page': 'farm', 'user': request.user})
@@ -330,12 +345,20 @@ def buyer_delivery(request):
     redir = _require_buyer(request)
     if redir: return redir
     orders = Order.objects.filter(buyer=request.user).prefetch_related('items__product').order_by('-created_at')
-    active = orders.filter(status__in=['in_transit', 'confirmed']).first()
+    trackable = orders.filter(status__in=['in_transit', 'confirmed'])
+
+    order_id = request.GET.get('order_id')
+    if order_id:
+        active = trackable.filter(id=order_id).first() or trackable.first()
+    else:
+        active = trackable.first()
+
     return render(request, 'buyer_delivery.html', {
         'active_page':  'delivery',
         'orders':       orders,
+        'trackable':    trackable,
         'active_order': active,
-        'user': request.user,
+        'user':         request.user,
     })
 
 
@@ -355,12 +378,176 @@ def buyer_invoice(request):
 
 
 @login_required
+def download_invoice(request, order_id):
+    redir = _require_buyer(request)
+    if redir: return redir
+
+    order = get_object_or_404(Order, id=order_id, buyer=request.user)
+    items = order.items.select_related('product').all()
+
+    # ── Build PDF in memory ──────────────────────────────────────────
+    import io
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    )
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=2*cm, rightMargin=2*cm,
+        topMargin=2*cm, bottomMargin=2*cm,
+    )
+
+    styles = getSampleStyleSheet()
+    green  = colors.HexColor('#1e4620')
+    lgreen = colors.HexColor('#e8f5e9')
+    gray   = colors.HexColor('#777777')
+
+    title_style  = ParagraphStyle('title',  fontSize=22, textColor=green,  fontName='Helvetica-Bold', spaceAfter=2)
+    sub_style    = ParagraphStyle('sub',    fontSize=10, textColor=gray,   fontName='Helvetica')
+    label_style  = ParagraphStyle('label',  fontSize=9,  textColor=gray,   fontName='Helvetica')
+    value_style  = ParagraphStyle('value',  fontSize=10, textColor=colors.black, fontName='Helvetica-Bold')
+    section_style= ParagraphStyle('sect',   fontSize=11, textColor=green,  fontName='Helvetica-Bold', spaceBefore=12, spaceAfter=6)
+    total_style  = ParagraphStyle('total',  fontSize=14, textColor=green,  fontName='Helvetica-Bold', alignment=TA_RIGHT)
+
+    subtotal       = float(order.total_amount)
+    shipping_price = float(order.shipping_price) if order.shipping_price else 0
+    grand_total    = subtotal + shipping_price
+
+    story = []
+
+    # ── Header ──
+    story.append(Paragraph("AgriGov Market", title_style))
+    story.append(Paragraph("Agricultural Marketplace Platform — Algeria", sub_style))
+    story.append(Spacer(1, 0.3*cm))
+    story.append(HRFlowable(width="100%", thickness=2, color=green))
+    story.append(Spacer(1, 0.4*cm))
+
+    # ── Invoice meta (two-column) ──
+    inv_number = f"INV-{order.id:05d}"
+    meta_data = [
+        [Paragraph("INVOICE", ParagraphStyle('inv', fontSize=18, textColor=green, fontName='Helvetica-Bold')),
+         Paragraph(f"<b>{inv_number}</b>", ParagraphStyle('invr', fontSize=13, fontName='Helvetica-Bold', alignment=TA_RIGHT))],
+        [Paragraph(f"Date: {order.created_at.strftime('%d %B %Y')}", label_style),
+         Paragraph(f"Status: <b>{'Paid' if order.status == 'delivered' else order.get_status_display()}</b>",
+                   ParagraphStyle('sr', fontSize=9, fontName='Helvetica-Bold',
+                                  textColor=colors.HexColor('#155724') if order.status == 'delivered' else colors.HexColor('#856404'),
+                                  alignment=TA_RIGHT))],
+    ]
+    meta_tbl = Table(meta_data, colWidths=['60%', '40%'])
+    meta_tbl.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP'), ('BOTTOMPADDING', (0,0), (-1,-1), 4)]))
+    story.append(meta_tbl)
+    story.append(Spacer(1, 0.5*cm))
+
+    # ── Bill To / From ──
+    parties_data = [
+        [Paragraph("BILL TO", label_style), Paragraph("FROM", label_style)],
+        [Paragraph(f"<b>{request.user.get_full_name() or request.user.username}</b>", value_style),
+         Paragraph(f"<b>{order.farmer.get_full_name() or order.farmer.username}</b>", value_style)],
+        [Paragraph(order.shipping_wilaya or '—', sub_style),
+         Paragraph(order.farmer.email or '—', sub_style)],
+        [Paragraph(order.shipping_address or '—', sub_style), Paragraph('', sub_style)],
+        [Paragraph(order.shipping_phone or '—', sub_style), Paragraph('', sub_style)],
+    ]
+    parties_tbl = Table(parties_data, colWidths=['50%', '50%'])
+    parties_tbl.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), lgreen),
+        ('FONTNAME',   (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE',   (0,0), (-1,0), 8),
+        ('TEXTCOLOR',  (0,0), (-1,0), green),
+        ('TOPPADDING', (0,0), (-1,0), 6),
+        ('BOTTOMPADDING', (0,0), (-1,0), 6),
+        ('LEFTPADDING',   (0,0), (-1,-1), 10),
+        ('BOX',  (0,0), (-1,-1), 0.5, colors.HexColor('#cccccc')),
+        ('LINEAFTER', (0,0), (0,-1), 0.5, colors.HexColor('#cccccc')),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+    ]))
+    story.append(parties_tbl)
+    story.append(Spacer(1, 0.6*cm))
+
+    # ── Items Table ──
+    story.append(Paragraph("Order Items", section_style))
+    item_header = ['#', 'Product', 'Farm', 'Qty (kg)', 'Unit Price', 'Total']
+    item_rows   = [item_header]
+    for idx, item in enumerate(items, 1):
+        unit_p = float(item.product.price_per_kg) if item.product.price_per_kg else 0
+        line_t = unit_p * float(item.quantity_kg)
+        item_rows.append([
+            str(idx),
+            item.product.name,
+            item.product.farm.name if hasattr(item.product, 'farm') else '—',
+            f"{item.quantity_kg} kg",
+            f"{unit_p:,.0f} DA",
+            f"{line_t:,.0f} DA",
+        ])
+
+    items_tbl = Table(item_rows, colWidths=[0.7*cm, 5*cm, 3.5*cm, 2*cm, 2.5*cm, 2.5*cm])
+    items_tbl.setStyle(TableStyle([
+        ('BACKGROUND',    (0,0), (-1,0), green),
+        ('TEXTCOLOR',     (0,0), (-1,0), colors.white),
+        ('FONTNAME',      (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE',      (0,0), (-1,-1), 9),
+        ('ALIGN',         (3,0), (-1,-1), 'RIGHT'),
+        ('ALIGN',         (0,0), (0,-1), 'CENTER'),
+        ('ROWBACKGROUNDS',(0,1), (-1,-1), [colors.white, lgreen]),
+        ('GRID',          (0,0), (-1,-1), 0.25, colors.HexColor('#dddddd')),
+        ('TOPPADDING',    (0,0), (-1,-1), 7),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 7),
+        ('LEFTPADDING',   (0,0), (-1,-1), 8),
+    ]))
+    story.append(items_tbl)
+    story.append(Spacer(1, 0.5*cm))
+
+    # ── Totals ──
+    totals_data = [
+        ['', 'Subtotal',  f"{subtotal:,.0f} DA"],
+        ['', 'Shipping',  f"{shipping_price:,.0f} DA"],
+        ['', 'TOTAL DUE', f"{grand_total:,.0f} DA"],
+    ]
+    totals_tbl = Table(totals_data, colWidths=[9.2*cm, 4*cm, 3*cm])
+    totals_tbl.setStyle(TableStyle([
+        ('ALIGN',         (1,0), (-1,-1), 'RIGHT'),
+        ('FONTNAME',      (1,2), (-1,2), 'Helvetica-Bold'),
+        ('FONTSIZE',      (1,2), (-1,2), 12),
+        ('TEXTCOLOR',     (1,2), (-1,2), green),
+        ('BACKGROUND',    (1,2), (-1,2), lgreen),
+        ('TOPPADDING',    (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('LINEABOVE',     (1,2), (-1,2), 1, green),
+    ]))
+    story.append(totals_tbl)
+    story.append(Spacer(1, 1*cm))
+
+    # ── Footer ──
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#cccccc')))
+    story.append(Spacer(1, 0.3*cm))
+    story.append(Paragraph(
+        "Thank you for using AgriGov Market. This document was generated automatically.",
+        ParagraphStyle('footer', fontSize=8, textColor=gray, alignment=TA_CENTER)
+    ))
+
+    doc.build(story)
+    buf.seek(0)
+
+    response = HttpResponse(buf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="invoice_{inv_number}.pdf"'
+    return response
+
+
+@login_required
 def buyer_profile(request):
     redir = _require_buyer(request)
     if redir: return redir
     if request.method == 'POST':
-        request.user.email = request.POST.get('email', request.user.email)
-        request.user.phone = request.POST.get('phone', request.user.phone)
+        request.user.first_name = request.POST.get('first_name', request.user.first_name)
+        request.user.last_name  = request.POST.get('last_name',  request.user.last_name)
+        request.user.email      = request.POST.get('email',      request.user.email)
+        request.user.phone      = request.POST.get('phone',      request.user.phone)
         request.user.save()
         messages.success(request, "✅ Profile updated!")
         return redirect('buyer_profile')

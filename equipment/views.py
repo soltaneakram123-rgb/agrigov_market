@@ -195,10 +195,11 @@ def ministry_update_equipment_request(request, req_id):
     eq_req = get_object_or_404(EquipmentRequest, id=req_id)
     try:
         data       = json.loads(request.body)
-        action     = data.get('action')          # 'approved' | 'rejected'
+        # frontend sends 'status'; old code used 'action' — accept both
+        action     = data.get('status') or data.get('action')
         admin_note = data.get('admin_note', '')
 
-        if action not in ('approved', 'rejected'):
+        if action not in ('approved', 'rejected', 'returned'):
             return JsonResponse({'status': 'error', 'msg': 'Invalid action'}, status=400)
 
         eq_req.status     = action

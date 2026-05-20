@@ -79,10 +79,10 @@
     </div>
     <div class="invoice-actions">
       <button class="btn btn-view"
-        onclick="viewInvoice('INV-{{ order.id }}','{% for item in order.items.all %}{{ item.product.name }}{% if not forloop.last %}, {% endif %}{% endfor %}','{{ order.created_at|date:"d M Y" }}','{{ order.total_amount }}','{{ order.status }}','{{ order.farmer.username }}')">
+        onclick="viewInvoice('INV-{{ order.id }}','{% for item in order.items.all %}{{ item.product.name }}{% if not forloop.last %}, {% endif %}{% endfor %}','{{ order.created_at|date:"d M Y" }}','{{ order.total_amount }}','{{ order.status }}','{{ order.farmer.username }}','{{ order.id }}')">
         👁 View
       </button>
-      <button class="btn btn-download" onclick="showToast('⬇ INV-{{ order.id }} exported!')">⬇ Download</button>
+      <a href="{% url 'download_invoice' order.id %}" class="btn btn-download" download>⬇ Download</a>
     </div>
   </div>
   {% empty %}
@@ -109,7 +109,7 @@
     <div class="modal-row"><span>Farmer</span><strong id="m-farmer"></strong></div>
     <div class="modal-actions">
       <button class="modal-close" onclick="closeModal('modalBg')">Close</button>
-      <button class="modal-save" onclick="showToast('🖨 Printing...');closeModal('modalBg')">🖨 Print</button>
+      <a id="modal-download-btn" href="#" class="modal-save" style="text-decoration:none;padding:9px 20px;">⬇ Download PDF</a>
     </div>
   </div>
 </div>
@@ -142,7 +142,7 @@ function applyFilters() {
 }
 document.getElementById("searchInput").addEventListener("keyup", applyFilters);
 document.getElementById("statusFilter").addEventListener("change", applyFilters);
-function viewInvoice(id, product, date, subtotal, status, farmer) {
+function viewInvoice(id, product, date, subtotal, status, farmer, orderId) {
   document.getElementById('m-id').textContent = id;
   document.getElementById('m-product').textContent = product;
   document.getElementById('m-date').textContent = date;
@@ -150,6 +150,7 @@ function viewInvoice(id, product, date, subtotal, status, farmer) {
   document.getElementById('m-total').textContent = (parseInt(subtotal.replace(/,/g,'')) + 200) + ' DA';
   document.getElementById('m-status').textContent = status;
   document.getElementById('m-farmer').textContent = farmer;
+  document.getElementById('modal-download-btn').href = '/buyer/invoice/' + orderId + '/download/';
   document.getElementById('modalBg').classList.add('open');
 }
 </script>

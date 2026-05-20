@@ -13,6 +13,14 @@
       <label>Location (Wilaya)</label>
       <input type="text" name="location" placeholder="e.g. Algiers" required style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none;">
     </div>
+    <div class="modal-field" style="margin-top:15px;">
+      <label>Farm Size (Hectares) <span style="color:#aaa;font-size:12px;font-weight:normal;">— optional</span></label>
+      <div style="position:relative;">
+        <input type="number" name="size_hectares" placeholder="e.g. 5.5" min="0.01" step="0.01"
+          style="width:100%;padding:10px 50px 10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;">
+        <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#aaa;font-size:13px;pointer-events:none;">ha</span>
+      </div>
+    </div>
     <div style="margin-top:20px;">
       <button type="submit" class="add-btn" style="background:#2e8b42;color:white;border:none;cursor:pointer;">✅ Register Farm</button>
     </div>

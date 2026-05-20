@@ -287,8 +287,10 @@ def transporter_profile_view(request):
     if request.user.role != 'transporter':
         return redirect('dashboard')
     if request.method == 'POST':
-        request.user.email = request.POST.get('email', request.user.email)
-        request.user.phone = request.POST.get('phone', request.user.phone)
+        request.user.first_name = request.POST.get('first_name', request.user.first_name)
+        request.user.last_name  = request.POST.get('last_name',  request.user.last_name)
+        request.user.email      = request.POST.get('email',      request.user.email)
+        request.user.phone      = request.POST.get('phone',      request.user.phone)
         request.user.save()
         profile, _ = TransporterProfile.objects.get_or_create(
             user=request.user,

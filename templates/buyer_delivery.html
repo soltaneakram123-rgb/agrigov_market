@@ -39,6 +39,19 @@
     <h1>Delivery & Tracking</h1>
     <p>Follow your shipments in real-time</p>
   </div>
+  {% if trackable.count > 1 %}
+  <div style="display:flex;align-items:center;gap:10px;">
+    <label style="font-size:13px;color:#555;font-weight:600;">📦 Track order:</label>
+    <select onchange="window.location.href='{% url 'buyer_delivery' %}?order_id='+this.value"
+            style="border:2px solid #2e8b42;border-radius:8px;padding:7px 12px;font-size:13px;font-weight:600;color:#1e4620;cursor:pointer;outline:none;">
+      {% for o in trackable %}
+      <option value="{{ o.id }}" {% if active_order.id == o.id %}selected{% endif %}>
+        #{{ o.id }} — {% for item in o.items.all %}{{ item.product.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
 </div>
 
 {% if active_order %}
@@ -95,7 +108,7 @@
   <div style="background:white;border-radius:12px;padding:20px;box-shadow:0 5px 15px rgba(0,0,0,0.08);">
     <table class="orders-table">
       <thead>
-        <tr><th>Order #</th><th>Products</th><th>Farmer</th><th>Date</th><th>Total</th><th>Status</th></tr>
+        <tr><th>Order #</th><th>Products</th><th>Farmer</th><th>Date</th><th>Total</th><th>Status</th><th>Action</th></tr>
       </thead>
       <tbody>
         {% for order in orders %}
@@ -110,6 +123,11 @@
             {% elif order.status == 'delivered' %}<span class="badge delivered">✅ Delivered</span>
             {% elif order.status == 'confirmed' %}<span class="badge in-transit">✅ Confirmed</span>
             {% else %}<span class="badge pending-badge">⏳ Pending</span>{% endif %}
+          </td>
+          <td>
+            {% if order.status == 'in_transit' or order.status == 'confirmed' %}
+            <a href="{% url 'buyer_delivery' %}?order_id={{ order.id }}" class="btn-track">📍 Track</a>
+            {% else %}<span style="color:#aaa;font-size:12px;">—</span>{% endif %}
           </td>
         </tr>
         {% empty %}

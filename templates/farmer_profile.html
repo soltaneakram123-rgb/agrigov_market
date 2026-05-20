@@ -31,6 +31,12 @@
   <div style="flex:2;min-width:300px;background:white;padding:25px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.08);">
     <h3 style="color:#1e4620;margin-bottom:15px;font-size:15px;">📋 Account Information</h3>
     <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
+      <span style="color:#666;">First Name</span><strong style="color:#1e4620;">{{ user.first_name|default:"—" }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
+      <span style="color:#666;">Last Name</span><strong style="color:#1e4620;">{{ user.last_name|default:"—" }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
       <span style="color:#666;">Username</span><strong style="color:#1e4620;">{{ user.username }}</strong>
     </div>
     <div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #f0f0f0;">
@@ -58,6 +64,31 @@
     {% else %}
     <p style="color:#aaa;font-size:13px;">No farm registered yet. <a href="{% url 'my_farm' %}" style="color:#2e8b42;">Add your farm →</a></p>
     {% endif %}
+
+    <div style="margin-top:20px;text-align:right;">
+      <button onclick="document.getElementById('editModal').classList.add('open')"
+        style="background:#1e4620;color:white;border:none;padding:10px 22px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">
+        ✏ Edit Profile
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <h3>✏ Edit Profile</h3>
+    <form method="post" action="{% url 'farmer_profile' %}">
+      {% csrf_token %}
+      <div class="modal-field"><label>First Name</label><input type="text" name="first_name" value="{{ user.first_name }}" placeholder="First name"></div>
+      <div class="modal-field"><label>Last Name</label><input type="text" name="last_name" value="{{ user.last_name }}" placeholder="Last name"></div>
+      <div class="modal-field"><label>Email</label><input type="email" name="email" value="{{ user.email }}"></div>
+      <div class="modal-field"><label>Phone</label><input type="text" name="phone" value="{{ user.phone }}"></div>
+      <div class="modal-actions">
+        <button type="button" class="modal-close" onclick="document.getElementById('editModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="modal-save">Save Changes</button>
+      </div>
+    </form>
   </div>
 </div>
 {% endblock %}

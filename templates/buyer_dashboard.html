@@ -89,7 +89,7 @@
       <div class="card-buttons">
         <div class="btn-row">
           <button class="btn-cart" onclick="openOrderModal('{{ product.id }}','{{ product.name }}','{{ product.price_per_kg }}','{{ product.quantity_kg }}','{{ product.farm.name }}','{{ product.farm.location }}')">📦 Order</button>
-          <button class="btn-compare-sm" style="background:#e8f5e9;color:#1e4620;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:bold;cursor:pointer;" onclick="addToCart('{{ product.id }}','{{ product.name|escapejs }}','{{ product.price_per_kg }}','{{ product.farm.name|escapejs }}')" title="Add to cart">🛒</button>
+          <button class="btn-compare-sm" style="background:#e8f5e9;color:#1e4620;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:bold;cursor:pointer;" onclick="addToCart('{{ product.id }}','{{ product.name|escapejs }}','{{ product.price_per_kg }}','{{ product.farm.name|escapejs }}','{{ product.image|escapejs }}')" title="Add to cart">🛒</button>
           <a href="{% url 'buyer_compare' %}" class="btn-compare-sm" style="display:flex;align-items:center;justify-content:center;text-decoration:none;">⚖ Compare</a>
         </div>
       </div>
@@ -206,14 +206,14 @@ function getCart() {
 function saveCart(cart) {
   try { sessionStorage.setItem('agrigov_cart', JSON.stringify(cart)); } catch {}
 }
-function addToCart(id, name, price, farm) {
+function addToCart(id, name, price, farm, image) {
   let cart = getCart();
   const existing = cart.find(i => i.id === id);
   if (existing) {
     existing.qty = parseFloat((existing.qty + 0.5).toFixed(1));
     showToast('🛒 ' + name + ' quantity updated in cart!');
   } else {
-    cart.push({ id, name, price: parseFloat(price), farm, qty: 1 });
+    cart.push({ id, name, price: parseFloat(price), farm, image: image || '', qty: 1 });
     showToast('✅ ' + name + ' added to cart!');
   }
   saveCart(cart);
